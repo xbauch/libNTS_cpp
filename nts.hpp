@@ -3,8 +3,11 @@
 #pragma once
 
 #include <list>
+#include <vector>
 #include <string>
 #include <iterator>
+
+#include "data_types.hpp"
 
 namespace nts
 {
@@ -68,9 +71,11 @@ class BasicNts
 
 		friend class Variable;
 		// This must be the same type as in NTS
-		std::list < Variable * > _variables;
-		std::list < Variable * > _params_in;
-		std::list < Variable * > _params_out;
+		// TODO: add constness
+		using Variables = std::list < Variable * >;
+		Variables _variables;
+		Variables _params_in;
+		Variables _params_out;
 
 	public:
 		class Callers;
@@ -86,21 +91,15 @@ class BasicNts
 		void remove_from_parent();
 		void insert_to ( Nts * parent );
 
+		const Variables & variables()  const { return _variables;  }
+		const Variables & params_in()  const { return _params_in;  }
+		const Variables & params_out() const { return _params_out; }
 };
 
 class Variable
 {
-	public:
-		enum class Type
-		{
-			Integer,
-			Bool,
-			Real,
-			BitVector
-		};
-
 	private:
-		Type        _type;
+		DataType    _type;
 		std::string _name;
 
 		// If variable has a parent, then _pos is valid iterator
@@ -115,7 +114,7 @@ class Variable
 		void insert_to ( Variables * parent, const Variables::iterator & before );
 
 	public:
-		Variable ( Type t, const std::string & name );
+		Variable ( DataType t, const std::string & name );
 		Variable ( const Variable &  old ) = delete;
 		Variable ( const Variable && old );
 
@@ -132,15 +131,14 @@ class Variable
 
 
 		void insert_copy_to ( const std::string & prefix, BasicNts *nb ) const;
+
+		const DataType & type() const { return _type; }
 };
 
 class BitVectorVariable : public Variable
 {
 	public:
 		BitVectorVariable ( const std::string &name, unsigned int width);
-
-	private:
-		unsigned int _bitwidth;
 };
 
 class Transition
@@ -171,38 +169,38 @@ class Transition
 		Kind kind() const;
 };
 
-Transition::Transition ( Transition::Kind k ) :
-	_kind ( k )
-{
-	;
-}
-
-Transition::Kind Transition::kind() const
-{
-	return _kind;
-}
-
 class CallTransition : public Transition
 {
+	public:
+		using VariableList = const std::initializer_list < const Variable * > &;
+		using Variables     = std::vector < const Variable * >;
+
 	private:
 		BasicNts * _dest;
+		Variables  _var_in;
+		Variables  _var_out;
 
 	public:
-		CallTransition ( BasicNts *dest );
-		BasicNts * dest() const;
+		CallTransition ( BasicNts *dest, VariableList in, VariableList out );
+
+		BasicNts * dest() const { return _dest; }
+
+		const Variables & variables_in()  const { return _var_in;  }
+		const Variables & variables_out() const { return _var_out; }
 };
 
-CallTransition::CallTransition ( BasicNts * dest ) :
-	Transition ( Kind::Call ),
-	_dest      ( dest       )
+class Formula;
+class FormulaTransition : public Transition
 {
-	;
-}
+	private:
+		const Formula * _f;
 
-BasicNts * CallTransition::dest() const
-{
-	return _dest;
-}
+	public:
+		FormulaTransition ( const Formula * f );
+
+		const Formula * formula() const { return _f; }
+};
+
 
 // yields call Transitions
 class BasicNts::Callees
@@ -254,69 +252,6 @@ class BasicNts::Callees::iterator :
 		Transition * & operator* ();
 
 };
-
-BasicNts::Callees::iterator::iterator (
-		const BasicNts::Callees::Transitions::iterator &it,
-		const BasicNts::Callees::Transitions &t ) :
-	_it ( it ),
-	_t  ( t  )
-{
-	skip();
-}
-
-BasicNts::Callees::iterator & BasicNts::Callees::iterator::operator++ ()
-{
-	if ( _it != _t.end() )
-	{
-		_it++;
-		skip();
-	}
-	return *this;
-}
-
-BasicNts::Callees::iterator BasicNts::Callees::iterator::operator++ ( int )
-{
-	iterator old ( *this );
-	operator++();
-	return old;
-}
-
-bool BasicNts::Callees::iterator::operator==
-	( const BasicNts::Callees::iterator &rhs ) const
-{
-	return _it == rhs._it;
-}
-
-bool BasicNts::Callees::iterator::operator!=
-	( const BasicNts::Callees::iterator &rhs ) const
-{
-	return *this != rhs;
-}
-
-Transition * & BasicNts::Callees::iterator::operator* ()
-{
-	return *_it;
-}
-
-void BasicNts::Callees::iterator::skip()
-{
-	while ( _it != _t.end() &&
-			(*_it)->kind() != Transition::Kind::Call)
-	{
-			_it++;
-	}
-}
-
-BasicNts::Callees::iterator BasicNts::Callees::begin()
-{
-	return iterator ( _transitions.begin(), _transitions );
-}
-
-BasicNts::Callees::iterator BasicNts::Callees::end()
-{
-	return iterator ( _transitions.end(), _transitions );
-}
-
 
 class BasicNts::Callers :
 	public std::iterator < std::forward_iterator_tag, CallTransition *>
@@ -370,99 +305,6 @@ class BasicNts::Callers::iterator :
 		CallTransition * operator* ();
 
 };
-
-BasicNts::Callers::iterator::iterator (
-		const Basics::iterator & it,
-		const Basics           & basics,
-		const BasicNts        * callee ) :
-
-	_basics    ( basics ),
-	_callee    ( callee ),
-	_BasicNts ( it )
-{
-	if ( _BasicNts != _basics.end() )
-	{
-		_Transition = (*_BasicNts)->_transitions.begin();
-		skip();
-	}
-}
-
-
-Instance::Instance ( BasicNts *basic, unsigned int n )  :
-	function ( basic ), n ( n )
-{
-	;
-}
-
-
-BasicNts::Callers::iterator BasicNts::Callers::begin()
-{
-	return iterator ( _basics.begin(), _basics, _callee );
-}
-
-BasicNts::Callers::iterator BasicNts::Callers::end()
-{
-	return iterator ( _basics.end(), _basics, _callee );
-}
-
-void BasicNts::Callers::iterator::skip()
-{
-	while ( _BasicNts != _basics.end() )
-	{
-		auto e = (*_BasicNts)->_transitions.end();
-		while ( _Transition != e )
-		{
-			if ( (*_Transition)->kind() == Transition::Kind::Call )
-			{
-				const CallTransition *ct = (CallTransition *) (*_Transition);
-				if ( ct->dest() == this->_callee)
-					return;
-			}
-			_Transition++;
-		}
-
-		_BasicNts++;
-
-		if ( _BasicNts != _basics.end() )
-			_Transition = (*_BasicNts)->_transitions.begin();
-	}
-}
-
-BasicNts::Callers::iterator & BasicNts::Callers::iterator::operator++()
-{
-	if ( _BasicNts != _basics.end() )
-	{
-		_Transition++;
-		skip();
-	}
-
-	return *this;
-}
-
-BasicNts::Callers::iterator BasicNts::Callers::iterator::operator++(int)
-{
-	iterator old = *this;
-	operator++();
-	return old;
-}
-
-CallTransition * BasicNts::Callers::iterator::operator*()
-{
-	return (CallTransition *) (*_Transition);
-}
-
-bool BasicNts::Callers::iterator::operator== ( const iterator &rhs ) const
-{
-	return _BasicNts == rhs._BasicNts &&
-		( _BasicNts == _basics.end() || _Transition == rhs._Transition);
-}
-
-bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
-{
-	return !(*this == rhs);
-}
-
-
 
 
 } // namespace nts

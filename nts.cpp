@@ -5,6 +5,17 @@
 
 using namespace nts;
 
+//------------------------------------//
+// Instance                           //
+//------------------------------------//
+
+Instance::Instance ( BasicNts *basic, unsigned int n )  :
+	function ( basic ), n ( n )
+{
+	;
+}
+
+
 void Instance::remove_from_parent()
 {
 	if ( _parent )
@@ -26,6 +37,10 @@ void Instance::insert_to ( Nts * parent )
 	_pos = _parent->_instances.insert ( _parent->_instances.end(), this );
 }
 
+//------------------------------------//
+// BasicNts                           //
+//------------------------------------//
+
 void BasicNts::insert_to ( Nts * parent )
 {
 	_parent = parent;
@@ -41,15 +56,174 @@ void BasicNts::remove_from_parent()
 	}
 }
 
+//------------------------------------//
+// BasicNts::Callees                  //
+//------------------------------------//
+
 BasicNts::Callees BasicNts::callees()
 {
 	return Callees ( _transitions );
 }
 
+BasicNts::Callees::iterator::iterator (
+		const BasicNts::Callees::Transitions::iterator &it,
+		const BasicNts::Callees::Transitions &t ) :
+	_it ( it ),
+	_t  ( t  )
+{
+	skip();
+}
+
+BasicNts::Callees::iterator & BasicNts::Callees::iterator::operator++ ()
+{
+	if ( _it != _t.end() )
+	{
+		_it++;
+		skip();
+	}
+	return *this;
+}
+
+BasicNts::Callees::iterator BasicNts::Callees::iterator::operator++ ( int )
+{
+	iterator old ( *this );
+	operator++();
+	return old;
+}
+
+bool BasicNts::Callees::iterator::operator==
+	( const BasicNts::Callees::iterator &rhs ) const
+{
+	return _it == rhs._it;
+}
+
+bool BasicNts::Callees::iterator::operator!=
+	( const BasicNts::Callees::iterator &rhs ) const
+{
+	return *this != rhs;
+}
+
+Transition * & BasicNts::Callees::iterator::operator* ()
+{
+	return *_it;
+}
+
+void BasicNts::Callees::iterator::skip()
+{
+	while ( _it != _t.end() &&
+			(*_it)->kind() != Transition::Kind::Call)
+	{
+			_it++;
+	}
+}
+
+BasicNts::Callees::iterator BasicNts::Callees::begin()
+{
+	return iterator ( _transitions.begin(), _transitions );
+}
+
+BasicNts::Callees::iterator BasicNts::Callees::end()
+{
+	return iterator ( _transitions.end(), _transitions );
+}
+
+//------------------------------------//
+// BasicNts::Callers                  //
+//------------------------------------//
+
 BasicNts::Callers BasicNts::callers()
 {
 	return Callers ( this, _parent->_basics );
 }
+
+BasicNts::Callers::iterator::iterator (
+		const Basics::iterator & it,
+		const Basics           & basics,
+		const BasicNts        * callee ) :
+
+	_basics    ( basics ),
+	_callee    ( callee ),
+	_BasicNts ( it )
+{
+	if ( _BasicNts != _basics.end() )
+	{
+		_Transition = (*_BasicNts)->_transitions.begin();
+		skip();
+	}
+}
+
+BasicNts::Callers::iterator BasicNts::Callers::begin()
+{
+	return iterator ( _basics.begin(), _basics, _callee );
+}
+
+BasicNts::Callers::iterator BasicNts::Callers::end()
+{
+	return iterator ( _basics.end(), _basics, _callee );
+}
+
+void BasicNts::Callers::iterator::skip()
+{
+	while ( _BasicNts != _basics.end() )
+	{
+		auto e = (*_BasicNts)->_transitions.end();
+		while ( _Transition != e )
+		{
+			if ( (*_Transition)->kind() == Transition::Kind::Call )
+			{
+				const CallTransition *ct = (CallTransition *) (*_Transition);
+				if ( ct->dest() == this->_callee)
+					return;
+			}
+			_Transition++;
+		}
+
+		_BasicNts++;
+
+		if ( _BasicNts != _basics.end() )
+			_Transition = (*_BasicNts)->_transitions.begin();
+	}
+}
+
+BasicNts::Callers::iterator & BasicNts::Callers::iterator::operator++()
+{
+	if ( _BasicNts != _basics.end() )
+	{
+		_Transition++;
+		skip();
+	}
+
+	return *this;
+}
+
+BasicNts::Callers::iterator BasicNts::Callers::iterator::operator++(int)
+{
+	iterator old = *this;
+	operator++();
+	return old;
+}
+
+CallTransition * BasicNts::Callers::iterator::operator*()
+{
+	return (CallTransition *) (*_Transition);
+}
+
+bool BasicNts::Callers::iterator::operator== ( const iterator &rhs ) const
+{
+	return _BasicNts == rhs._BasicNts &&
+		( _BasicNts == _basics.end() || _Transition == rhs._Transition);
+}
+
+bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
+{
+	return !(*this == rhs);
+}
+
+
+
+//------------------------------------//
+// Transition                         //
+//------------------------------------//
 
 void Transition::insert_to ( BasicNts * parent )
 {
@@ -66,11 +240,70 @@ void Transition::remove_from_parent()
 	}
 }
 
+Transition::Transition ( Transition::Kind k ) :
+	_kind ( k )
+{
+	;
+}
+
+Transition::Kind Transition::kind() const
+{
+	return _kind;
+}
+
+//------------------------------------//
+// CallTransition                     //
+//------------------------------------//
+
+CallTransition::CallTransition ( BasicNts * dest, VariableList in, VariableList out ) :
+	Transition ( Kind::Call ),
+	_dest      ( dest       )
+{
+	const auto & params_in  = dest->params_in();
+	const auto & params_out = dest->params_out();
+
+	if ( in.size() != params_in.size() )
+		throw TypeError();
+
+	if ( out.size() != params_out.size() )
+		throw TypeError();
+
+	// Check type of input parameters
+	auto formal = params_in.cbegin();
+	for ( const auto i : in )
+	{
+		if ( formal == params_in.cend() )
+			throw TypeError();
+
+		if ( (*formal)->type() != i->type() )
+			throw TypeError();
+
+		formal++;
+	}
+
+	// Check type of output parameters
+	formal = params_out.cbegin();
+	for ( const auto i : out )
+	{
+		if ( formal == params_out.cend() )
+			throw TypeError();
+
+		if ( (*formal)->type() != i->type() )
+			throw TypeError();
+
+		formal++;
+	}
+
+	_var_in.insert ( _var_in.cbegin(), in );
+	_var_out.insert ( _var_out.cbegin(), out );
+
+}
+
 //------------------------------------//
 // Variable                           //
 //------------------------------------//
 
-Variable::Variable ( Type t, const std::string & name ) :
+Variable::Variable ( DataType t, const std::string & name ) :
 	_type        ( t       ),
 	_name        ( name    ),
 	_parent_list ( nullptr )
@@ -141,84 +374,9 @@ void Variable::insert_before ( const Variable & var )
 //------------------------------------//
 
 BitVectorVariable::BitVectorVariable ( const std::string &name, unsigned int width ) :
-	Variable ( Variable::Type::BitVector, name ),
-	_bitwidth ( width )
+	Variable ( DataType::BitVector(width), name )
 {
 	;
 }
 
-struct Example
-{
-	CallTransition ct[2];
-	Transition tr[2];
 
-	BitVectorVariable bvvar[4];
-
-	BasicNts nb[2];
-	Nts toplevel_nts;
-
-	Example() :
-		ct {
-			CallTransition ( &nb[1] ),
-			CallTransition ( &nb[1] )
-		},
-		tr {
-			Transition ( Transition::Kind::Formula ),
-			Transition ( Transition::Kind::Formula )
-		},
-		bvvar {
-			BitVectorVariable ( "var1", 8 ),
-			BitVectorVariable ( "var2", 16),
-			BitVectorVariable ( "var3", 1 ),
-			BitVectorVariable ( "var4", 4 )
-		}
-	{
-		tr[0].insert_to ( &nb[0] );
-		ct[0].insert_to ( &nb[0] );
-		ct[1].insert_to ( &nb[0] );
-		tr[1].insert_to ( &nb[0] );
-
-
-		nb[0].insert_to ( &toplevel_nts );
-		nb[1].insert_to ( &toplevel_nts );
-
-		bvvar[0].insert_to ( & toplevel_nts );
-		bvvar[1].insert_param_in_to ( & nb[1] );
-		bvvar[2].insert_before ( bvvar[1] );
-
-	}
-
-	void try_callees()
-	{
-		auto i = nb[0].callees().begin();
-		printf ( "%p == %p\n", &ct[0], *i);
-		i++;
-		printf ( "%p == %p\n", &ct[1], *i);
-		i++;
-		printf ( "end? %s\n", i == nb[0].callees().end() ? "yes" : "no" );
-	}
-
-	void try_callers()
-	{
-		auto i = nb[1].callers().begin();
-		auto e = nb[1].callers().end();
-		for (int j = 0; j < 5 && i != e; ++j, ++i )
-		{
-			printf( "%d: %p\n", j, (*i) );
-		}
-	}
-
-};
-
-int main ( void )
-{
-	printf ( "Hello world\n" );
-
-	Example e1;
-	e1.try_callees();
-	e1.try_callers();
-
-
-
-	return 0;
-}
