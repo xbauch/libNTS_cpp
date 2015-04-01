@@ -9,11 +9,6 @@
 namespace nts
 {
 
-using std::list;
-using std::string;
-
-
-
 // Forward declarations
 class BasicNts;
 class Instance;
@@ -22,13 +17,13 @@ class Variable;
 class Nts
 {
 	private:
-		list <Instance *> _Instances;
+		std::list <Instance *> _instances;
 		friend class Instance;
 
-		list <BasicNts *> _basics;
+		std::list <BasicNts *> _basics;
 		friend class BasicNts;
 
-		list <Variable *> _vars;
+		std::list <Variable *> _vars;
 		friend class Variable;
 
 	public:
@@ -42,7 +37,7 @@ class Nts
 class Instance
 {
 	private:
-		using Instances = decltype(Nts::_Instances);
+		using Instances = decltype(Nts::_instances);
 
 		Nts * _parent;
 		// Valid if parent is not null
@@ -54,7 +49,7 @@ class Instance
 	public:	
 		Instance ( BasicNts *basic, unsigned int n );
 		void remove_from_parent();
-		void insert_to_nts ( Nts * parent );
+		void insert_to ( Nts * parent );
 		void insert_before ( const Instance & i );
 };
 
@@ -68,8 +63,14 @@ class BasicNts
 		Nts * _parent;
 		Basics::iterator _pos;
 
-		list < Transition *> _Transitions;
 		friend class Transition;
+		std::list < Transition *> _transitions;
+
+		friend class Variable;
+		// This must be the same type as in NTS
+		std::list < Variable * > _variables;
+		std::list < Variable * > _params_in;
+		std::list < Variable * > _params_out;
 
 	public:
 		class Callers;
@@ -83,7 +84,7 @@ class BasicNts
 		const Callees callees() const;
 
 		void remove_from_parent();
-		void insert_to_nts ( Nts * parent );
+		void insert_to ( Nts * parent );
 
 };
 
@@ -98,33 +99,54 @@ class Variable
 			BitVector
 		};
 
-
 	private:
-		Type   _type;
-		string _name;
+		Type        _type;
+		std::string _name;
 
-		// At most one of them can be non-null
-		// If _parent_nts is not null, then this variable
-		// is global variable.
-		// If _parent_BasicNts is not null, then this variable
-		// is local variable;
-		Nts       * _parent_nts;
-		BasicNts * _parent_BasicNts;
+		// If variable has a parent, then _pos is valid iterator
+		// and points to position of this variable in parent's list
+		using Variables = decltype(Nts::_vars);
+		Variables         * _parent_list;
+		Variables::iterator _pos;
+
+
+		// If variable is inserted into a parent, default move of variable
+		// or parent would break this relation.
+		void insert_to ( Variables * parent, const Variables::iterator & before );
 
 	public:
-		Variable ( Type t, const string & name );
+		Variable ( Type t, const std::string & name );
+		Variable ( const Variable &  old ) = delete;
+		Variable ( const Variable && old );
 
-		// Does not check names
-		void insert_to_nts ( Nts * n );
-		void insert_to_BasicNts ( BasicNts *nb );
+		// Insert it as normal variable
+		void insert_to ( Nts * n );
+		void insert_to ( BasicNts *nb );
 
-		void insert_copy_to_BasicNts ( const std::string & prefix, BasicNts *nb ) const;
+		// Insert it as input / output parameter
+		void insert_param_in_to  ( BasicNts * nb );
+		void insert_param_out_to ( BasicNts * nb );
+
+		void insert_before ( const Variable & var );
+		void remove_from_parent();
+
+
+		void insert_copy_to ( const std::string & prefix, BasicNts *nb ) const;
+};
+
+class BitVectorVariable : public Variable
+{
+	public:
+		BitVectorVariable ( const std::string &name, unsigned int width);
+
+	private:
+		unsigned int _bitwidth;
 };
 
 class Transition
 {
 	public:
-		using Transitions = decltype(BasicNts::_Transitions);
+		using Transitions = decltype(BasicNts::_transitions);
 
 		enum class Kind
 		{
@@ -144,7 +166,7 @@ class Transition
 		void remove_from_parent();
 
 		// Order does not matter
-		void insert_to_BasicNts ( BasicNts * parent );
+		void insert_to ( BasicNts * parent );
 
 		Kind kind() const;
 };
@@ -186,15 +208,15 @@ BasicNts * CallTransition::dest() const
 class BasicNts::Callees
 {
 	public:
-		using Transitions = decltype(BasicNts::_Transitions);
+		using Transitions = decltype(BasicNts::_transitions);
 
 	private:
-		Transitions & _Transitions;
+		Transitions & _transitions;
 
 	public:
 
 		Callees ( Transitions & Transitions) :
-			_Transitions ( Transitions )
+			_transitions ( Transitions )
 		{ ; }
 
 		class iterator;
@@ -287,12 +309,12 @@ void BasicNts::Callees::iterator::skip()
 
 BasicNts::Callees::iterator BasicNts::Callees::begin()
 {
-	return iterator ( _Transitions.begin(), _Transitions );
+	return iterator ( _transitions.begin(), _transitions );
 }
 
 BasicNts::Callees::iterator BasicNts::Callees::end()
 {
-	return iterator ( _Transitions.end(), _Transitions );
+	return iterator ( _transitions.end(), _transitions );
 }
 
 
@@ -326,7 +348,7 @@ class BasicNts::Callers::iterator :
 	public std::iterator < std::forward_iterator_tag, CallTransition *>
 {
 	private:
-		using Transitions = decltype(BasicNts::_Transitions);
+		using Transitions = decltype(BasicNts::_transitions);
 
 		const Basics & _basics;
 		const BasicNts * _callee;
@@ -360,7 +382,7 @@ BasicNts::Callers::iterator::iterator (
 {
 	if ( _BasicNts != _basics.end() )
 	{
-		_Transition = (*_BasicNts)->_Transitions.begin();
+		_Transition = (*_BasicNts)->_transitions.begin();
 		skip();
 	}
 }
@@ -387,7 +409,7 @@ void BasicNts::Callers::iterator::skip()
 {
 	while ( _BasicNts != _basics.end() )
 	{
-		auto e = (*_BasicNts)->_Transitions.end();
+		auto e = (*_BasicNts)->_transitions.end();
 		while ( _Transition != e )
 		{
 			if ( (*_Transition)->kind() == Transition::Kind::Call )
@@ -402,7 +424,7 @@ void BasicNts::Callers::iterator::skip()
 		_BasicNts++;
 
 		if ( _BasicNts != _basics.end() )
-			_Transition = (*_BasicNts)->_Transitions.begin();
+			_Transition = (*_BasicNts)->_transitions.begin();
 	}
 }
 
