@@ -35,7 +35,8 @@ struct Example
 		BitVectorVariable var_2;
 		BitVectorVariable var_3;
 
-		CallTransition *ct1;
+		TransitionRule *ctr1;
+		Transition *t1;
 
 		Nts1 ( struct Nts2 *n ) :
 			var_1   ( "var_1", 4 ),
@@ -45,12 +46,16 @@ struct Example
 			var_1.insert_to ( &basic );
 			var_2.insert_to ( &basic );
 			var_3.insert_to ( &basic );
-			ct1 = new CallTransition ( &n->basic, { &var_1, &var_2}, { &var_3 } );
+			ctr1 = new CallTransitionRule ( &n->basic, { &var_1, &var_2}, { &var_3 } );
+			t1 = new Transition ( *ctr1 );
+			t1->insert_to ( & basic );
 
 		}
 		~Nts1()
 		{
-			delete ct1;
+			delete t1;
+			// TransitionRule has virtual destructor
+			delete ctr1;
 		}
 
 	};
@@ -60,8 +65,9 @@ struct Example
 	BasicNts nb[2];
 	Nts toplevel_nts;
 
-	vector<CallTransition *> ct;
-	Transition tr[2];
+	vector < CallTransitionRule *> ctr;
+	vector < FormulaTransitionRule *> ftr;
+	vector < Transition * > tr;
 
 	Example() :
 		bvvar {
@@ -69,25 +75,30 @@ struct Example
 			BitVectorVariable ( "var2", 16),
 			BitVectorVariable ( "var3", 1 ),
 			BitVectorVariable ( "var4", 4 )
-		},
-
-		tr {
-			Transition ( Transition::Kind::Formula ),
-			Transition ( Transition::Kind::Formula )
 		}
 
-	{
-		// Two call transitions
-		CallTransition *t = new CallTransition ( &nb[1], {}, {} );
-		ct.push_back ( t );
-		t = new CallTransition ( &nb[1], {}, {} );
-		ct.push_back ( t );
+	{	
+		// tr[0] - call transition
+		ctr.push_back ( new CallTransitionRule ( &nb[1], {}, {} ) );
+		tr.push_back ( new Transition ( *ctr.back() ) );
+
+		// tr[1] - call transition
+		ctr.push_back ( new CallTransitionRule ( &nb[1], {}, {} ) );
+		tr.push_back ( new Transition ( *ctr.back() ) );
+
+		// tr[2] - formula transition
+		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
+		tr.push_back ( new Transition ( *ftr.back() ) );
+
+		// tr[3] - formula transition
+		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
+		tr.push_back ( new Transition ( *ftr.back() ) );
 
 
-		tr[0].insert_to ( &nb[0] );
-		ct[0]->insert_to ( &nb[0] );
-		ct[1]->insert_to ( &nb[0] );
-		tr[1].insert_to ( &nb[0] );
+		tr[0]->insert_to ( &nb[0] );
+		tr[2]->insert_to ( &nb[0] );
+		tr[3]->insert_to ( &nb[0] );
+		tr[1]->insert_to ( &nb[0] );
 
 
 		nb[0].insert_to ( &toplevel_nts );
@@ -101,19 +112,24 @@ struct Example
 
 	~Example()
 	{
-		for ( auto t : ct )
-		{
+		for ( auto r : ctr )
+			delete r;
+
+		for ( auto r : ftr )
+			delete r;
+
+		for ( auto t : tr )
 			delete t;
-		}
 	}
 
 
 	void try_callees()
 	{
 		auto i = nb[0].callees().begin();
-		printf ( "%p == %p\n", ct[0], *i);
+
+		printf ( "%p == %p\n", tr[0], (*i).transition() );
 		i++;
-		printf ( "%p == %p\n", ct[1], *i);
+		printf ( "%p == %p\n", tr[1], (*i).transition() );
 		i++;
 		printf ( "end? %s\n", i == nb[0].callees().end() ? "yes" : "no" );
 	}
@@ -124,7 +140,7 @@ struct Example
 		auto e = nb[1].callers().end();
 		for (int j = 0; j < 5 && i != e; ++j, ++i )
 		{
-			printf( "%d: %p\n", j, (*i) );
+			printf( "%d: %p\n", j, (*i).transition() );
 		}
 	}
 

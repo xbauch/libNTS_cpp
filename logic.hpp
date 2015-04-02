@@ -56,7 +56,7 @@ class Term
 		// type can be whatever type
 		Term ( bool minus, DataType type ); 
 
-		const DataType & type () const;
+		const DataType & type () const { return _type; }
 };
 
 // Formulas have always type Bool

@@ -36,6 +36,9 @@ namespace nts
 			bool operator== ( const DataType &t ) const;
 			bool operator!= ( const DataType & rhs ) const;
 
+			// This makes sense only if the type is BitVector
+			unsigned int bitwidth() const { return _bitwidth; }
+
 	};
 
 	class TypeError : public std::exception

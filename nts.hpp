@@ -57,6 +57,7 @@ class Instance
 };
 
 class Transition;
+class State;
 
 class BasicNts
 {
@@ -141,11 +142,34 @@ class BitVectorVariable : public Variable
 		BitVectorVariable ( const std::string &name, unsigned int width);
 };
 
+class TransitionRule;
+
 class Transition
 {
 	public:
 		using Transitions = decltype(BasicNts::_transitions);
 
+
+	private:
+
+		BasicNts * _parent;
+		Transitions::iterator _pos;
+		TransitionRule & _rule;
+
+	public:
+		Transition ( TransitionRule & rule );
+
+		void remove_from_parent();
+
+		// Order does not matter
+		void insert_to ( BasicNts * parent );
+
+		const TransitionRule & rule() const { return _rule; }
+};
+
+class TransitionRule
+{
+	public:
 		enum class Kind
 		{
 			Call,
@@ -154,22 +178,21 @@ class Transition
 
 	private:
 		Kind _kind;
-
-		BasicNts * _parent;
-		Transitions::iterator _pos;
+		friend Transition::Transition( TransitionRule & rule);
+		Transition * _t;
 
 	public:
-		Transition ( Kind );
+		TransitionRule ( Kind k ) : _kind ( k ), _t ( nullptr ) { ; }
 
-		void remove_from_parent();
+		// All transition rules can be managed in one container
+		// ( virtual destructors allows it )
+		virtual ~TransitionRule() {;}
 
-		// Order does not matter
-		void insert_to ( BasicNts * parent );
-
-		Kind kind() const;
+		Kind kind() const { return _kind; }
+		const Transition * transition() const { return _t; }
 };
 
-class CallTransition : public Transition
+class CallTransitionRule : public TransitionRule
 {
 	public:
 		using VariableList = const std::initializer_list < const Variable * > &;
@@ -181,7 +204,7 @@ class CallTransition : public Transition
 		Variables  _var_out;
 
 	public:
-		CallTransition ( BasicNts *dest, VariableList in, VariableList out );
+		CallTransitionRule ( BasicNts *dest, VariableList in, VariableList out );
 
 		BasicNts * dest() const { return _dest; }
 
@@ -190,13 +213,13 @@ class CallTransition : public Transition
 };
 
 class Formula;
-class FormulaTransition : public Transition
+class FormulaTransitionRule : public TransitionRule
 {
 	private:
 		const Formula * _f;
 
 	public:
-		FormulaTransition ( const Formula * f );
+		FormulaTransitionRule ( const Formula * f );
 
 		const Formula * formula() const { return _f; }
 };
@@ -225,7 +248,7 @@ class BasicNts::Callees
 
 
 class BasicNts::Callees::iterator :
-	public std::iterator<std::forward_iterator_tag, Transition *>
+	public std::iterator<std::forward_iterator_tag, CallTransitionRule >
 {
 	private:
 		Transitions::iterator _it;
@@ -249,12 +272,12 @@ class BasicNts::Callees::iterator :
 
 
 		// can not be end
-		Transition * & operator* ();
+		const CallTransitionRule & operator* () const;
 
 };
 
-class BasicNts::Callers :
-	public std::iterator < std::forward_iterator_tag, CallTransition *>
+class BasicNts::Callers /*:
+	public std::iterator < std::forward_iterator_tag, CallTransitionRule *> */
 {
 	private:
 		BasicNts * _callee;
@@ -280,7 +303,7 @@ class BasicNts::Callers :
 };
 
 class BasicNts::Callers::iterator :
-	public std::iterator < std::forward_iterator_tag, CallTransition *>
+	public std::iterator < std::forward_iterator_tag, CallTransitionRule >
 {
 	private:
 		using Transitions = decltype(BasicNts::_transitions);
@@ -300,9 +323,11 @@ class BasicNts::Callers::iterator :
 
 		iterator operator++ ( int );
 		iterator & operator++ ();
+
 		bool operator== ( const iterator & rhs ) const;
 		bool operator!= ( const iterator & rhs ) const;
-		CallTransition * operator* ();
+
+		const CallTransitionRule & operator* () const;
 
 };
 

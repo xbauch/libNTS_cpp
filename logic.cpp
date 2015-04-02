@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "nts.hpp"
 #include "logic.hpp"
 
@@ -164,6 +166,34 @@ ArithmeticOperation::ArithmeticOperation ( ArithOp op, const Term *t1, const Ter
 	_t2 ( t2 )
 {
 	;
+}
+
+DataType ArithmeticOperation::calc_type ( const Term * term1, const Term *term2 )
+{
+	const DataType &t1 = term1->type();
+	const DataType &t2 = term2->type();
+
+	// Same types
+	if ( t1 == t2 )
+		return t1;
+
+	// t1 can be whatever type of class Integral (probably constant)
+	// t2 is some concrete type of class Integral,
+	// or whatever type of class Integral
+	if ( t1 == DataType::Integral() && t2.is_integral() )
+		return t2;
+
+	// Commutatively
+	if ( t2 == DataType::Integral() && t1.is_integral() )
+		return t1;
+
+	// Both are BitVectors, but have different size (because t1 != t2)
+	if ( t1.is_bitvector() && t2.is_bitvector() )
+	{
+		return DataType::BitVector ( std::max( t1.bitwidth(), t2.bitwidth() ) );
+	}
+
+	throw TypeError();
 }
 
 const ArithOp & ArithmeticOperation::operation() const

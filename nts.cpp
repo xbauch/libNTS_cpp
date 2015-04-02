@@ -103,15 +103,15 @@ bool BasicNts::Callees::iterator::operator!=
 	return *this != rhs;
 }
 
-Transition * & BasicNts::Callees::iterator::operator* ()
+const CallTransitionRule & BasicNts::Callees::iterator::operator* () const
 {
-	return *_it;
+	return static_cast < const CallTransitionRule & > ( (*_it)->rule() );
 }
 
 void BasicNts::Callees::iterator::skip()
 {
 	while ( _it != _t.end() &&
-			(*_it)->kind() != Transition::Kind::Call)
+			(*_it)->rule().kind() != TransitionRule::Kind::Call)
 	{
 			_it++;
 	}
@@ -169,10 +169,11 @@ void BasicNts::Callers::iterator::skip()
 		auto e = (*_BasicNts)->_transitions.end();
 		while ( _Transition != e )
 		{
-			if ( (*_Transition)->kind() == Transition::Kind::Call )
+			if ( (*_Transition)->rule().kind() == TransitionRule::Kind::Call )
 			{
-				const CallTransition *ct = (CallTransition *) (*_Transition);
-				if ( ct->dest() == this->_callee)
+				auto &ctr = static_cast< const CallTransitionRule &>
+					( (*_Transition)->rule() );
+				if ( ctr.dest() == this->_callee)
 					return;
 			}
 			_Transition++;
@@ -203,9 +204,9 @@ BasicNts::Callers::iterator BasicNts::Callers::iterator::operator++(int)
 	return old;
 }
 
-CallTransition * BasicNts::Callers::iterator::operator*()
+const CallTransitionRule & BasicNts::Callers::iterator::operator*() const
 {
-	return (CallTransition *) (*_Transition);
+	return static_cast<const CallTransitionRule &>((*_Transition)->rule()) ;
 }
 
 bool BasicNts::Callers::iterator::operator== ( const iterator &rhs ) const
@@ -240,24 +241,36 @@ void Transition::remove_from_parent()
 	}
 }
 
-Transition::Transition ( Transition::Kind k ) :
-	_kind ( k )
+Transition::Transition ( TransitionRule & rule ) :
+	_rule ( rule )
+{
+	rule._t = this;
+}
+
+//------------------------------------//
+// FormulaTransitionRule              //
+//------------------------------------//
+
+FormulaTransitionRule::FormulaTransitionRule ( const Formula *f ) :
+	TransitionRule ( Kind::Formula ),
+	_f             ( f             )
 {
 	;
 }
 
-Transition::Kind Transition::kind() const
-{
-	return _kind;
-}
 
 //------------------------------------//
-// CallTransition                     //
+// CallTransitionRule                 //
 //------------------------------------//
 
-CallTransition::CallTransition ( BasicNts * dest, VariableList in, VariableList out ) :
-	Transition ( Kind::Call ),
-	_dest      ( dest       )
+CallTransitionRule::CallTransitionRule
+(
+		BasicNts   * dest,
+		VariableList in,
+		VariableList out
+) :
+	TransitionRule ( Kind::Call ),
+	_dest          ( dest       )
 {
 	const auto & params_in  = dest->params_in();
 	const auto & params_out = dest->params_out();
