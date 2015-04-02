@@ -1,9 +1,15 @@
 #include "nts.hpp"
 #include <stdio.h>
 #include <stdexcept>
-#include <utility> // move()
+#include <algorithm>  // find()
+#include <limits>     // numeric_limits::max<T>()
+#include <utility>    // move()
 
 using namespace nts;
+using std::string;
+using std::to_string;
+using std::numeric_limits;
+using std::find;
 
 //------------------------------------//
 // Instance                           //
@@ -36,6 +42,27 @@ void Instance::insert_to ( Nts * parent )
 	_parent = parent;
 	_pos = _parent->_instances.insert ( _parent->_instances.end(), this );
 }
+
+//------------------------------------//
+// State                              //
+//------------------------------------//
+
+State::State ( const State && old ) :
+	_name ( std::move ( old._name ) )
+{
+	;
+}
+
+bool State::operator== ( const State & s ) const
+{
+	return _name == s._name;
+}
+
+bool State::operator!= ( const State & s ) const
+{
+	return ! ( *this == s );
+}
+
 
 //------------------------------------//
 // BasicNts                           //
@@ -125,6 +152,33 @@ BasicNts::Callees::iterator BasicNts::Callees::begin()
 BasicNts::Callees::iterator BasicNts::Callees::end()
 {
 	return iterator ( _transitions.end(), _transitions );
+}
+
+BasicNts::States::const_iterator BasicNts::state_add ()
+{
+	const auto m = numeric_limits<decltype(_state_number)>::max();
+	while ( _state_number <  m )
+	{
+		const State s ( string ( "st_" ) + to_string ( _state_number ) );
+		auto last = _states.cend();
+		auto found = find<States::const_iterator>( _states.cbegin(), last, s ) ;
+		if ( last != found )
+		{
+			_states.emplace_back ( std::move ( s ) );
+			auto it = _states.cend();
+			return --it;
+		}
+		_state_number++;
+	}
+
+	throw std::runtime_error ( "Can not name a state" );
+}
+
+//BasicNts::States::const_iterator BasicNts::state_add ( )
+
+void BasicNts::state_remove ( const States::const_iterator & state )
+{
+	_states.erase ( state );
 }
 
 //------------------------------------//

@@ -56,9 +56,33 @@ class Instance
 		void insert_before ( const Instance & i );
 };
 
-class Transition;
-class State;
+class State
+{
+	private:
+		std::string _name;
 
+	public:
+		State ( const std::string &  name ) : _name ( name ) { ; }
+		State ( const std::string && name ) : _name ( name ) { ; }
+		State ( const State &  st  ) = delete;
+		State ( const State && old );
+
+		const std::string name() const { return _name; }
+
+		bool operator== ( const State & s ) const;
+		bool operator!= ( const State & s ) const;
+};
+
+class Transition;
+
+/**
+ * @brief Represents <nts-basic>
+ *
+ * Does not manage transitions ( although it might have sense)
+ * Does not manage variables ( they can be attached to BasicNts or Nts )
+ * Manages states ( because they do not have sense outside )
+ *
+ */
 class BasicNts
 {
 	private:
@@ -78,6 +102,11 @@ class BasicNts
 		Variables _params_in;
 		Variables _params_out;
 
+		// Increases after each state_add()
+		unsigned int _state_number;
+		using States = std::list < State >;
+		States _states;
+
 	public:
 		class Callers;
 		class Callees;
@@ -95,6 +124,19 @@ class BasicNts
 		const Variables & variables()  const { return _variables;  }
 		const Variables & params_in()  const { return _params_in;  }
 		const Variables & params_out() const { return _params_out; }
+
+		const States & states() const { return _states; }
+
+		// Best-case linear, worst-case quadratic
+		// TODO: Improve!
+		States::const_iterator state_add ();
+
+		// Fails if there is a state with same name
+		States::const_iterator state_add ( const std::string &  name );
+		States::const_iterator state_add ( const std::string && name );
+
+		void state_remove ( const States::const_iterator & st );
+
 };
 
 class Variable
