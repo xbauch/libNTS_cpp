@@ -63,6 +63,23 @@ bool State::operator!= ( const State & s ) const
 	return ! ( *this == s );
 }
 
+void State::insert_to ( BasicNts &n )
+{
+	if ( this->_states_list )
+		throw std::logic_error ( "State already belongs to BasicNts" );
+
+	_states_list = & n._states;
+	_pos = n._states.insert ( n._states.cend(), this );
+}
+
+void State::remove_from_parent ()
+{
+	if ( !this->_states_list )
+		throw std::logic_error ( "State does not belong to any BasicNts" );
+
+	_states_list->erase ( _pos );
+	_states_list = nullptr;
+}
 
 //------------------------------------//
 // BasicNts                           //
@@ -152,33 +169,6 @@ BasicNts::Callees::iterator BasicNts::Callees::begin()
 BasicNts::Callees::iterator BasicNts::Callees::end()
 {
 	return iterator ( _transitions.end(), _transitions );
-}
-
-BasicNts::States::const_iterator BasicNts::state_add ()
-{
-	const auto m = numeric_limits<decltype(_state_number)>::max();
-	while ( _state_number <  m )
-	{
-		const State s ( string ( "st_" ) + to_string ( _state_number ) );
-		auto last = _states.cend();
-		auto found = find<States::const_iterator>( _states.cbegin(), last, s ) ;
-		if ( last != found )
-		{
-			_states.emplace_back ( std::move ( s ) );
-			auto it = _states.cend();
-			return --it;
-		}
-		_state_number++;
-	}
-
-	throw std::runtime_error ( "Can not name a state" );
-}
-
-//BasicNts::States::const_iterator BasicNts::state_add ( )
-
-void BasicNts::state_remove ( const States::const_iterator & state )
-{
-	_states.erase ( state );
 }
 
 //------------------------------------//
