@@ -12,6 +12,26 @@ using std::numeric_limits;
 using std::find;
 
 //------------------------------------//
+// Nts                                //
+//------------------------------------//
+
+Nts::~Nts()
+{
+	for ( auto i : _instances )
+		delete i;
+	_instances.clear();
+
+	for ( auto b : _basics )
+		delete b;
+	_basics.clear();
+
+	for ( auto v : _vars )
+		delete v;
+	_vars.clear();
+}
+
+
+//------------------------------------//
 // Instance                           //
 //------------------------------------//
 
@@ -84,6 +104,30 @@ void State::remove_from_parent ()
 //------------------------------------//
 // BasicNts                           //
 //------------------------------------//
+
+BasicNts::~BasicNts()
+{
+	for ( auto t : _transitions )
+		delete t;
+	_transitions.clear();
+
+	for ( auto s : _states )
+		delete s;
+	_states.clear();
+
+	for ( auto v : _variables )
+		delete v;
+	_variables.clear();
+
+	for ( auto p : _params_in )
+		delete p;
+	_params_in.clear();
+
+	for ( auto p : _params_out )
+		delete p;
+	_params_out.clear();
+}
+
 
 void BasicNts::insert_to ( Nts * parent )
 {
@@ -269,6 +313,11 @@ bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
 //------------------------------------//
 // Transition                         //
 //------------------------------------//
+
+Transition::~Transition()
+{
+	delete &_rule;
+}
 
 void Transition::insert_to ( BasicNts * parent )
 {

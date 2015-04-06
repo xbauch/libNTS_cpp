@@ -9,6 +9,25 @@
 
 #include "data_types.hpp"
 
+/*
+ * Notes about ownership
+ *
+ * Each entity (Instance, BasicNts, State, Transition, TransitionRule, Variable)
+ * can have none or one parent. Parent is set by calling some of _insert() methods.
+ * To do so, entity must not have parent. Conversely, parent is removed
+ * by calling remove_from_parent() method, and to do so, entity must have a parent.
+ *
+ * If entity has a parent, then that parent is owner of that entity.
+ * If entity does not have a parent, one of following cases holds:
+ * a) It is a newly created entity. Then creator is owner of that entity.
+ * b) Parent was removed by calling remove_from_parent(). Then the caller is now
+ * owner of that entity.
+ *
+ * Parent calls delete on all its child.
+ * 
+ */
+
+
 namespace nts
 {
 
@@ -26,15 +45,25 @@ class Nts
 		std::list <BasicNts *> _basics;
 		friend class BasicNts;
 
+		// Global variables
 		std::list <Variable *> _vars;
 		friend class Variable;
 
 	public:
+		Nts () = default;
+
+		// Copying breaks ownership
+		Nts ( const Nts & ) = delete;
+		
+		Nts ( Nts && ) = default;
+
+		~Nts();
 
 		const std::list <BasicNts *> & basic_ntses() const
 		{
 			return _basics;
 		}
+
 };
 
 class Instance
@@ -51,6 +80,11 @@ class Instance
 
 	public:	
 		Instance ( BasicNts *basic, unsigned int n );
+		Instance ( const Instance & ) = delete;
+		Instance ( const Instance && ) = delete;
+
+		~Instance() = default;
+
 		void remove_from_parent();
 		void insert_to ( Nts * parent );
 		void insert_before ( const Instance & i );
@@ -60,17 +94,13 @@ class Transition;
 class State;
 
 /**
- * @brief Represents <nts-basic>
- *
- * Does not manage anything:
- * Does not manage transitions ( although it might have sense)
- * Does not manage variables ( they can be attached to BasicNts or Nts )
- * Does not manages states
- *
+ * @brief Represents <nts-basic> 
  */
 class BasicNts
 {
 	private:
+		std::string _name;
+
 		using Basics = decltype(Nts::_basics);
 
 		Nts * _parent;
@@ -81,7 +111,6 @@ class BasicNts
 
 		friend class Variable;
 		// This must be the same type as in NTS
-		// TODO: add constness
 		using Variables = std::list < Variable * >;
 		Variables _variables;
 		Variables _params_in;
@@ -95,6 +124,12 @@ class BasicNts
 	public:
 		class Callers;
 		class Callees;
+
+		explicit BasicNts ( const std::string & name ) : _name(name) {;}
+		BasicNts ( const BasicNts &  ) = delete;
+		BasicNts ( const BasicNts && ) = delete;
+
+		~BasicNts();
 
 		// Transitions
 		Callers callers();
@@ -128,6 +163,8 @@ class State
 		State ( const State &  st  ) = delete;
 		State ( const State && old );
 
+		~State() = default;
+
 		const std::string name() const { return _name; }
 
 		bool operator== ( const State & s ) const;
@@ -159,6 +196,8 @@ class Variable
 		Variable ( const Variable &  old ) = delete;
 		Variable ( const Variable && old );
 
+		virtual ~Variable() = default;
+
 		// Insert it as normal variable
 		void insert_to ( Nts * n );
 		void insert_to ( BasicNts *nb );
@@ -176,10 +215,12 @@ class Variable
 		const DataType & type() const { return _type; }
 };
 
-class BitVectorVariable : public Variable
+class BitVectorVariable final : public Variable
 {
 	public:
 		BitVectorVariable ( const std::string &name, unsigned int width);
+
+		virtual ~BitVectorVariable() = default;
 };
 
 class TransitionRule;
@@ -189,7 +230,6 @@ class Transition
 	public:
 		using Transitions = decltype(BasicNts::_transitions);
 
-
 	private:
 
 		BasicNts * _parent;
@@ -197,7 +237,8 @@ class Transition
 		TransitionRule & _rule;
 
 	public:
-		Transition ( TransitionRule & rule );
+		explicit Transition ( TransitionRule & rule );
+		~Transition();
 
 		void remove_from_parent();
 
@@ -226,7 +267,7 @@ class TransitionRule
 
 		// All transition rules can be managed in one container
 		// ( virtual destructors allows it )
-		virtual ~TransitionRule() {;}
+		virtual ~TransitionRule() = default;
 
 		Kind kind() const { return _kind; }
 		const Transition * transition() const { return _t; }
@@ -245,6 +286,7 @@ class CallTransitionRule : public TransitionRule
 
 	public:
 		CallTransitionRule ( BasicNts *dest, VariableList in, VariableList out );
+		virtual ~CallTransitionRule() = default;
 
 		BasicNts * dest() const { return _dest; }
 
@@ -259,7 +301,8 @@ class FormulaTransitionRule : public TransitionRule
 		const Formula * _f;
 
 	public:
-		FormulaTransitionRule ( const Formula * f );
+		explicit FormulaTransitionRule ( const Formula * f );
+		virtual ~FormulaTransitionRule () = default;
 
 		const Formula * formula() const { return _f; }
 };
@@ -368,7 +411,6 @@ class BasicNts::Callers::iterator :
 		bool operator!= ( const iterator & rhs ) const;
 
 		const CallTransitionRule & operator* () const;
-
 };
 
 
