@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <iterator>
+#include <ostream>
 
 #include "data_types.hpp"
 
@@ -64,6 +65,8 @@ class Nts
 			return _basics;
 		}
 
+		friend std::ostream & operator<< ( std::ostream &, const Nts & );
+
 };
 
 class Instance
@@ -88,6 +91,8 @@ class Instance
 		void remove_from_parent();
 		void insert_to ( Nts * parent );
 		void insert_before ( const Instance & i );
+
+		friend std::ostream & operator<< ( std::ostream &o, const Instance & );
 };
 
 class Transition;
@@ -125,11 +130,13 @@ class BasicNts
 		class Callers;
 		class Callees;
 
-		explicit BasicNts ( const std::string & name ) : _name(name) {;}
+		explicit BasicNts ( const std::string & name );
 		BasicNts ( const BasicNts &  ) = delete;
 		BasicNts ( const BasicNts && ) = delete;
 
 		~BasicNts();
+
+		const std::string & name() const { return _name; }
 
 		// Transitions
 		Callers callers();
@@ -146,6 +153,8 @@ class BasicNts
 		const Variables & params_out() const { return _params_out; }
 
 		const States & states() const { return _states; }
+
+		friend std::ostream & operator<< ( std::ostream &, const BasicNts &);
 };
 
 class State
@@ -158,8 +167,8 @@ class State
 		std::string _name;
 
 	public:
-		State ( const std::string &  name ) : _name ( name ) { ; }
-		State ( const std::string && name ) : _name ( name ) { ; }
+		State ( const std::string &  name );
+		State ( const std::string && name );
 		State ( const State &  st  ) = delete;
 		State ( const State && old );
 
@@ -172,6 +181,8 @@ class State
 
 		void insert_to ( BasicNts &n );
 		void remove_from_parent ();
+
+		friend std::ostream & operator<< ( std::ostream &, const State & );
 };
 
 class Variable
@@ -212,7 +223,10 @@ class Variable
 
 		void insert_copy_to ( const std::string & prefix, BasicNts *nb ) const;
 
+		const std::string & name() const { return _name; }
 		const DataType & type() const { return _type; }
+
+		friend std::ostream & operator<< ( std::ostream &, const Variable & );
 };
 
 class BitVectorVariable final : public Variable
@@ -236,8 +250,11 @@ class Transition
 		Transitions::iterator _pos;
 		TransitionRule & _rule;
 
+		const State & _from;
+		const State & _to;
+
 	public:
-		explicit Transition ( TransitionRule & rule );
+		Transition ( TransitionRule & rule, const State &s1, const State &s2 );
 		~Transition();
 
 		void remove_from_parent();
@@ -246,6 +263,10 @@ class Transition
 		void insert_to ( BasicNts * parent );
 
 		const TransitionRule & rule() const { return _rule; }
+		const State & from() const { return _from; }
+		const State & to() const { return _to; }
+
+		friend std::ostream & operator<< ( std::ostream & o, const Transition & );
 };
 
 class TransitionRule
@@ -259,9 +280,10 @@ class TransitionRule
 
 	private:
 		Kind _kind;
-		friend Transition::Transition( TransitionRule & rule);
+		friend class Transition;
 		Transition * _t;
 
+		virtual std::ostream & print ( std::ostream & o ) const = 0;
 	public:
 		TransitionRule ( Kind k ) : _kind ( k ), _t ( nullptr ) { ; }
 
@@ -271,6 +293,8 @@ class TransitionRule
 
 		Kind kind() const { return _kind; }
 		const Transition * transition() const { return _t; }
+
+		friend std::ostream & operator<< ( std::ostream & o, const TransitionRule &);
 };
 
 class CallTransitionRule : public TransitionRule
@@ -283,6 +307,8 @@ class CallTransitionRule : public TransitionRule
 		BasicNts * _dest;
 		Variables  _var_in;
 		Variables  _var_out;
+
+		virtual std::ostream & print ( std::ostream & o ) const override;
 
 	public:
 		CallTransitionRule ( BasicNts *dest, VariableList in, VariableList out );
@@ -299,6 +325,8 @@ class FormulaTransitionRule : public TransitionRule
 {
 	private:
 		const Formula * _f;
+
+		virtual std::ostream & print ( std::ostream & o ) const override;
 
 	public:
 		explicit FormulaTransitionRule ( const Formula * f );

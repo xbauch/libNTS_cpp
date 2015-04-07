@@ -54,4 +54,28 @@ bool DataType::operator!= ( const DataType & rhs ) const
 	return ! (*this == rhs);
 }
 
+void DataType::print ( std::ostream &o ) const
+{
+	switch ( _type )
+	{
+		case Type::Integer:
+			o << "Int";
+			break;
 
+		case Type::Real:
+			o << "Real";
+			break;
+
+		case Type::BitVector:
+			o << "BitVector<" << _bitwidth << '>';
+			break;
+
+		// Probably not used - there should be no variable of type Integral
+		case Type::Integral:
+			o << "Integral";
+			break;
+
+		default:
+			throw TypeError();
+	}
+}

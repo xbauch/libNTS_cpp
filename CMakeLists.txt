@@ -11,3 +11,8 @@ add_library ( NTS_cpp STATIC
 	"nts.cpp"
 	"./logic.cpp"
 )
+
+add_executable ( ntslib_test
+	"test.cpp"
+)
+target_link_libraries ( ntslib_test NTS_cpp )

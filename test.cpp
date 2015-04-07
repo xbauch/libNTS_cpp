@@ -1,4 +1,5 @@
 #include <vector>
+#include <iostream>
 #include "nts.hpp"
 
 using namespace std;
@@ -17,7 +18,7 @@ struct Example
 
 		Nts2()
 		{
-			basic = new BasicNts ( "nts_1" );
+			basic = new BasicNts ( "nts_2" );
 			arg_1 = new BitVectorVariable ( "arg_1", 4 );
 			arg_2 = new BitVectorVariable ( "arg_2", 8 );
 			arg_ret = new BitVectorVariable ( "arg_ret", 16 );
@@ -55,8 +56,16 @@ struct Example
 			var_1->insert_to ( basic );
 			var_2->insert_to ( basic );
 			var_3->insert_to ( basic );
+
+			auto s1 = new State ( "s1" );
+			auto s2 = new State ( "s2" );
+			
+			s1->insert_to ( *n->basic );	
+			s2->insert_to ( *n->basic );
+
+
 			ctr1 = new CallTransitionRule ( n->basic, { var_1, var_2}, { var_3 } );
-			t1 = new Transition ( *ctr1 );
+			t1 = new Transition ( *ctr1, *s1, *s2 );
 			t1->insert_to (  basic );
 
 		}
@@ -72,6 +81,8 @@ struct Example
 	{
 		Nts2 n2;
 		Nts1 n1 ( &n2 );
+		std::cout << *n2.basic;
+		std::cout << *n1.basic;
 	}
 
 };
@@ -98,21 +109,32 @@ struct Example_callees_callers
 		nb[0] = new BasicNts ( "nb0" );
 		nb[1] = new BasicNts ( "nb1" );
 
+		auto s1 = new State ( "s1" );
+		auto s2 = new State ( "s2" );
+		auto s3 = new State ( "s3" );
+		auto s4 = new State ( "s4" );
+
+		for ( auto s : { s1, s2, s3, s4 } )
+		{
+			std::cout << "State: " << s << "\n";
+			s->insert_to ( *nb[0] );
+		}
+
 		// tr[0] - call transition
 		ctr.push_back ( new CallTransitionRule ( nb[1], {}, {} ) );
-		tr.push_back ( new Transition ( *ctr.back() ) );
+		tr.push_back ( new Transition ( *ctr.back(), *s1, *s2 ) );
 
 		// tr[1] - call transition
 		ctr.push_back ( new CallTransitionRule ( nb[1], {}, {} ) );
-		tr.push_back ( new Transition ( *ctr.back() ) );
+		tr.push_back ( new Transition ( *ctr.back(), *s1, *s3 ) );
 
 		// tr[2] - formula transition
 		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
-		tr.push_back ( new Transition ( *ftr.back() ) );
+		tr.push_back ( new Transition ( *ftr.back(), *s1, *s4 ) );
 
 		// tr[3] - formula transition
 		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
-		tr.push_back ( new Transition ( *ftr.back() ) );
+		tr.push_back ( new Transition ( *ftr.back(), *s2, *s3 ) );
 
 		// After this block nb[0] owns all transitions
 		tr[0]->insert_to ( nb[0] );

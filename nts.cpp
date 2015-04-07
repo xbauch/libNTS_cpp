@@ -5,11 +5,14 @@
 #include <limits>     // numeric_limits::max<T>()
 #include <utility>    // move()
 
+#include "to_csv.hpp"
+
 using namespace nts;
 using std::string;
 using std::to_string;
 using std::numeric_limits;
 using std::find;
+using std::ostream;
 
 //------------------------------------//
 // Nts                                //
@@ -36,7 +39,9 @@ Nts::~Nts()
 //------------------------------------//
 
 Instance::Instance ( BasicNts *basic, unsigned int n )  :
-	function ( basic ), n ( n )
+	_parent  ( nullptr ),
+	function ( basic   ),
+	n        ( n       )
 {
 	;
 }
@@ -63,9 +68,30 @@ void Instance::insert_to ( Nts * parent )
 	_pos = _parent->_instances.insert ( _parent->_instances.end(), this );
 }
 
+ostream & nts::operator<< ( ostream &o , const Instance &i )
+{
+	o << i.function->name() << '[' << i.n << ']';
+	return o;
+}
+
 //------------------------------------//
 // State                              //
 //------------------------------------//
+
+State::State ( const std::string & name ) :
+	_states_list ( nullptr ),
+	_name        ( name    )
+{
+	;
+}
+
+State::State ( const std::string && name ) :
+	_states_list ( nullptr ),
+	_name        ( name    )
+{
+	;
+}
+
 
 State::State ( const State && old ) :
 	_name ( std::move ( old._name ) )
@@ -101,9 +127,21 @@ void State::remove_from_parent ()
 	_states_list = nullptr;
 }
 
+ostream & nts::operator<< ( ostream &o , const State &s )
+{
+	o << s._name;
+	return o;
+}
+
 //------------------------------------//
 // BasicNts                           //
 //------------------------------------//
+BasicNts::BasicNts ( const std::string & name ) :
+	_name   ( name    ),
+	_parent ( nullptr )
+{
+	;
+}
 
 BasicNts::~BasicNts()
 {
@@ -142,6 +180,45 @@ void BasicNts::remove_from_parent()
 		_parent->_basics.erase ( _pos );
 		_parent = nullptr;
 	}
+}
+
+std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
+{
+	auto var_pr = [] ( ostream &o, Variable *v )
+	{
+		o << *v;
+	};
+
+
+	o << bn._name << " {\n";
+
+	if ( bn._params_in.size() > 0 )
+	{
+		o << "\tin\t";
+		to_csv( o, bn._params_in.cbegin(), bn._params_in.cend(), var_pr, ",\n\t\t" );
+		o << ";\n";
+	}
+
+	if ( bn._params_out.size() > 0 )
+	{
+		o << "\tout\t";
+		to_csv ( o, bn._params_out.cbegin(), bn._params_out.cend(), var_pr, ",\n\t\t" );
+		o << ";\n";
+	}
+
+	for ( auto v : bn._variables )
+	{
+		o << "\t" << *v << ";\n";
+	}
+
+	for ( auto t : bn._transitions )
+	{
+		o << "\t" << *t << "\n";
+	}
+
+	o << "}\n";
+
+	return o;
 }
 
 //------------------------------------//
@@ -334,10 +411,29 @@ void Transition::remove_from_parent()
 	}
 }
 
-Transition::Transition ( TransitionRule & rule ) :
-	_rule ( rule )
+Transition::Transition ( TransitionRule & rule, const State &s1, const State &s2 ) :
+	_parent ( nullptr ),
+	_rule   ( rule ),
+	_from   ( s1   ),
+	_to     ( s2   )
 {
 	rule._t = this;
+}
+
+ostream & nts::operator<< ( ostream &o, const Transition &t )
+{
+	o << t._from << " -> " << t._to << " " << t._rule;
+	return o;
+}
+
+//------------------------------------//
+// TransitionRule                     //
+//------------------------------------//
+
+ostream & nts::operator<< ( ostream &o, const TransitionRule &tr )
+{
+	tr.print ( o );
+	return o;
 }
 
 //------------------------------------//
@@ -351,6 +447,12 @@ FormulaTransitionRule::FormulaTransitionRule ( const Formula *f ) :
 	;
 }
 
+ostream & FormulaTransitionRule::print ( std::ostream & o ) const
+{
+	// TODO implement
+	o << "{}";
+	return o;
+}
 
 //------------------------------------//
 // CallTransitionRule                 //
@@ -403,6 +505,36 @@ CallTransitionRule::CallTransitionRule
 	_var_in.insert ( _var_in.cbegin(), in );
 	_var_out.insert ( _var_out.cbegin(), out );
 
+}
+
+namespace
+{
+	ostream & print_variable_name ( ostream &o, const Variable * v )
+	{
+		o << v->name();
+		return o;
+	}
+};
+
+ostream & CallTransitionRule::print ( std::ostream & o ) const
+{
+	o << "{ ";
+
+	if ( _var_out.size() > 1 )
+		o << "( ";
+
+	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
+		( o, _var_out.cbegin(), _var_out.cend() );
+
+	if ( _var_out.size() > 1 )
+		o << " )";
+
+	o << " = " << _dest->name() << " ( ";
+	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
+		( o, _var_in.cbegin(), _var_in.cend() );
+	o << " ) }";
+
+	return o;
 }
 
 //------------------------------------//
@@ -473,6 +605,13 @@ void Variable::insert_before ( const Variable & var )
 		throw std::logic_error ( "Variable does not have a parent" );
 
 	insert_to ( var._parent_list, var._pos );
+}
+
+ostream & nts::operator<< ( std::ostream & o, const Variable &v )
+{
+	o << v._name << " : ";
+	v._type.print ( o );
+	return o;
 }
 
 //------------------------------------//

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <exception>
+#include <ostream>
 
 namespace nts
 {
@@ -38,6 +39,9 @@ namespace nts
 
 			// This makes sense only if the type is BitVector
 			unsigned int bitwidth() const { return _bitwidth; }
+
+
+			void print ( std::ostream & o ) const;
 
 	};
 
