@@ -59,15 +59,17 @@ struct Example
 
 			auto s1 = new State ( "s1" );
 			auto s2 = new State ( "s2" );
+			auto s3 = new State ( "s3" );
 			
-			s1->insert_to ( *n->basic );	
-			s2->insert_to ( *n->basic );
+			s1->insert_to ( *basic );	
+			s2->insert_to ( *basic );
+			s3->insert_to ( *basic );
 
 
 			ctr1 = new CallTransitionRule ( n->basic, { var_1, var_2}, { var_3 } );
-			t1 = new Transition ( *ctr1, *s1, *s2 );
-			t1->insert_to (  basic );
-
+			// Transition automatically belongs to BasicNts,
+			// which owns given states
+			new Transition ( *ctr1, *s1, *s2 );
 		}
 		~Nts1()
 		{
@@ -116,9 +118,10 @@ struct Example_callees_callers
 
 		for ( auto s : { s1, s2, s3, s4 } )
 		{
-			std::cout << "State: " << s << "\n";
 			s->insert_to ( *nb[0] );
 		}
+
+		// It is not wise to call before BasicNts has all parameters
 
 		// tr[0] - call transition
 		ctr.push_back ( new CallTransitionRule ( nb[1], {}, {} ) );
@@ -135,12 +138,6 @@ struct Example_callees_callers
 		// tr[3] - formula transition
 		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
 		tr.push_back ( new Transition ( *ftr.back(), *s2, *s3 ) );
-
-		// After this block nb[0] owns all transitions
-		tr[0]->insert_to ( nb[0] );
-		tr[2]->insert_to ( nb[0] );
-		tr[3]->insert_to ( nb[0] );
-		tr[1]->insert_to ( nb[0] );
 
 		// After this block toplevel_nts owns all BasicNtses
 		nb[0]->insert_to ( &toplevel_nts );
@@ -180,6 +177,12 @@ struct Example_callees_callers
 		}
 	}
 
+	void print()
+	{
+		cout << *nb[0];
+		cout << *nb[1];
+	}
+
 };
 
 int main ( void )
@@ -187,11 +190,16 @@ int main ( void )
 	printf ( "Hello world\n" );
 
 	Example e1;
+	cout << "e1.examples()\n";
 	e1.examples();
 
 	Example_callees_callers e2;
+	cout << "e2.callees()\n";
 	e2.try_callees();
+	cout << "e2.callers()\n";
 	e2.try_callers();
+	cout << "e2.print()\n";
+	e2.print();
 
 	return 0;
 }

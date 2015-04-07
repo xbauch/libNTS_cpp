@@ -4,15 +4,19 @@
 #include <algorithm>  // find()
 #include <limits>     // numeric_limits::max<T>()
 #include <utility>    // move()
+#include <iterator>   // distance()
 
 #include "to_csv.hpp"
+#include "FilterIterator.hpp"
 
 using namespace nts;
 using std::string;
+using std::list;
 using std::to_string;
 using std::numeric_limits;
 using std::find;
 using std::ostream;
+using std::distance;
 
 //------------------------------------//
 // Nts                                //
@@ -79,15 +83,15 @@ ostream & nts::operator<< ( ostream &o , const Instance &i )
 //------------------------------------//
 
 State::State ( const std::string & name ) :
-	_states_list ( nullptr ),
-	_name        ( name    )
+	_parent ( nullptr ),
+	_name   ( name    )
 {
 	;
 }
 
 State::State ( const std::string && name ) :
-	_states_list ( nullptr ),
-	_name        ( name    )
+	_parent ( nullptr ),
+	_name   ( name    )
 {
 	;
 }
@@ -111,20 +115,20 @@ bool State::operator!= ( const State & s ) const
 
 void State::insert_to ( BasicNts &n )
 {
-	if ( this->_states_list )
+	if ( _parent )
 		throw std::logic_error ( "State already belongs to BasicNts" );
 
-	_states_list = & n._states;
+	_parent = &n;
 	_pos = n._states.insert ( n._states.cend(), this );
 }
 
 void State::remove_from_parent ()
 {
-	if ( !this->_states_list )
+	if ( !_parent )
 		throw std::logic_error ( "State does not belong to any BasicNts" );
 
-	_states_list->erase ( _pos );
-	_states_list = nullptr;
+	_parent->_states.erase ( _pos );
+	_parent = nullptr;
 }
 
 ostream & nts::operator<< ( ostream &o , const State &s )
@@ -145,9 +149,17 @@ BasicNts::BasicNts ( const std::string & name ) :
 
 BasicNts::~BasicNts()
 {
-	for ( auto t : _transitions )
-		delete t;
-	_transitions.clear();
+	{
+		// Deletion of transition unlinks it from the list,
+		// so we can not call ++ on the iterator
+		for ( auto t = _transitions.begin(); t != _transitions.end(); )
+		{
+			auto cur = t++;
+			delete *cur;
+		}
+
+		// Now _transitions should be empty
+	}
 
 	for ( auto s : _states )
 		delete s;
@@ -184,9 +196,15 @@ void BasicNts::remove_from_parent()
 
 std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
 {
+	// Prints variable
 	auto var_pr = [] ( ostream &o, Variable *v )
 	{
 		o << *v;
+	};
+
+	auto st_pr = [] ( ostream &o, const State *s )
+	{
+		o << *s;
 	};
 
 
@@ -209,6 +227,28 @@ std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
 	for ( auto v : bn._variables )
 	{
 		o << "\t" << *v << ";\n";
+	}
+
+	auto filter_states = [] ( State *s ) -> bool
+	{
+		if ( s->outgoing().size() >= 1 )
+			return false;
+
+		if ( s->incoming().size() >= 1 )
+			return false;
+
+		return true;
+	};
+
+	// All states without incoming / outgoing edges
+	Filtered < decltype ( bn._states)::const_iterator >
+		fs ( bn._states.cbegin(), bn._states.cend(), filter_states );
+
+	if ( distance ( fs.begin(), fs.end() )  >= 1 )
+	{
+		o << "\tstates\t";
+		to_csv ( o, fs.begin(), fs.end(), st_pr, "\n\t\t" );
+		o << ";\n";
 	}
 
 	for ( auto t : bn._transitions )
@@ -391,33 +431,33 @@ bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
 // Transition                         //
 //------------------------------------//
 
+Transition::Transition ( TransitionRule & rule, State &s1, State &s2 ) :
+	_parent ( *s1._parent ),
+	_rule   ( rule        ),
+	_from   ( s1          ),
+	_to     ( s2          )
+{
+	if ( !s1._parent || !s2._parent )
+		throw std::logic_error ( "Transition states must have parents" );
+
+	if ( s1._parent != s2._parent )
+		throw std::logic_error ( "Transition states must have the same parents" );
+
+	rule._t = this;
+
+	_st_from_pos = _from._outgoing_tr.insert ( _from._outgoing_tr.cend(), this );
+	_st_to_pos   = _to._incoming_tr.insert ( _to._incoming_tr.cend(), this );
+
+	_pos = _parent._transitions.insert ( _parent._transitions.end(), this );
+}
+
 Transition::~Transition()
 {
+	_from._outgoing_tr.erase ( _st_from_pos );
+	_to._incoming_tr.erase ( _st_to_pos );
+
+	_parent._transitions.erase ( _pos );
 	delete &_rule;
-}
-
-void Transition::insert_to ( BasicNts * parent )
-{
-	_parent = parent;
-	_pos = _parent->_transitions.insert ( _parent->_transitions.end(), this );
-}
-
-void Transition::remove_from_parent()
-{
-	if ( _parent )
-	{
-		_parent->_transitions.erase ( _pos );
-		_parent = nullptr;
-	}
-}
-
-Transition::Transition ( TransitionRule & rule, const State &s1, const State &s2 ) :
-	_parent ( nullptr ),
-	_rule   ( rule ),
-	_from   ( s1   ),
-	_to     ( s2   )
-{
-	rule._t = this;
 }
 
 ostream & nts::operator<< ( ostream &o, const Transition &t )

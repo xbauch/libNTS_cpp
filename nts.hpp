@@ -160,11 +160,16 @@ class BasicNts
 class State
 {
 	private:
-		using States = BasicNts::States;
-		States           * _states_list;
-		States::iterator   _pos;
+		BasicNts         * _parent;
+		BasicNts::States::iterator   _pos;
 
 		std::string _name;
+
+		friend class Transition;
+		using Transitions = std::list < Transition * >;
+		Transitions _incoming_tr;
+		Transitions _outgoing_tr;
+
 
 	public:
 		State ( const std::string &  name );
@@ -179,8 +184,12 @@ class State
 		bool operator== ( const State & s ) const;
 		bool operator!= ( const State & s ) const;
 
+		// Change parent only of no transition uses this state
 		void insert_to ( BasicNts &n );
 		void remove_from_parent ();
+
+		const Transitions & incoming() const { return _incoming_tr; }
+		const Transitions & outgoing() const { return _outgoing_tr; }
 
 		friend std::ostream & operator<< ( std::ostream &, const State & );
 };
@@ -246,21 +255,26 @@ class Transition
 
 	private:
 
-		BasicNts * _parent;
+		BasicNts & _parent;
 		Transitions::iterator _pos;
 		TransitionRule & _rule;
 
-		const State & _from;
-		const State & _to;
+		State & _from;
+		State & _to;
+
+		// Position of State's list of outgoing / incoming transitions
+		// Position in _from._outgoing_tr
+		State::Transitions::iterator _st_from_pos;
+		// Position in _to._incoming_tr
+		State::Transitions::iterator _st_to_pos;
 
 	public:
-		Transition ( TransitionRule & rule, const State &s1, const State &s2 );
+		// Both states should belong to the same BasicNts (not checked)
+		// Transition becomes the owner of 'rule'
+		// Both states must belong to some BasicNts
+		// and they must belong to the same BasicNts
+		Transition ( TransitionRule & rule, State &s1, State &s2 );
 		~Transition();
-
-		void remove_from_parent();
-
-		// Order does not matter
-		void insert_to ( BasicNts * parent );
 
 		const TransitionRule & rule() const { return _rule; }
 		const State & from() const { return _from; }
