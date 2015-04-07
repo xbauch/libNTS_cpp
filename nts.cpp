@@ -73,9 +73,9 @@ void Instance::insert_before ( const Instance &i )
 	_pos = _parent->_instances.insert ( i._pos, this );
 }
 
-void Instance::insert_to ( Nts * parent )
+void Instance::insert_to ( Nts & parent )
 {
-	_parent = parent;
+	_parent = & parent;
 	_pos = _parent->_instances.insert ( _parent->_instances.end(), this );
 }
 
@@ -186,9 +186,9 @@ BasicNts::~BasicNts()
 }
 
 
-void BasicNts::insert_to ( Nts * parent )
+void BasicNts::insert_to ( Nts & parent )
 {
-	_parent = parent;
+	_parent = & parent;
 	_pos = _parent->_basics.insert ( _parent->_basics.end(), this );
 }
 
@@ -608,12 +608,12 @@ Variable::Variable ( const Variable && old ) :
 	}
 }
 
-void Variable::insert_to ( Variables *parent, const Variables::iterator & before )
+void Variable::insert_to ( Variables & parent, const Variables::iterator & before )
 {
 	if ( _parent_list )
 		throw std::logic_error ( "Variable already has a parent" );
 
-	_parent_list = parent;
+	_parent_list = &parent;
 	_pos = _parent_list->insert ( before, this );
 }
 
@@ -626,24 +626,24 @@ void Variable::remove_from_parent()
 	_parent_list = nullptr;
 }
 
-void Variable::insert_to ( Nts * n )
+void Variable::insert_to ( Nts & n )
 {
-	insert_to ( & n->_vars, n->_vars.end() );
+	insert_to ( n._vars, n._vars.end() );
 }
 
-void Variable::insert_to ( BasicNts *nb )
+void Variable::insert_to ( BasicNts & nb )
 {
-	insert_to ( & nb->_variables, nb->_variables.end() );
+	insert_to ( nb._variables, nb._variables.end() );
 }
 
-void Variable::insert_param_in_to ( BasicNts *nb )
+void Variable::insert_param_in_to ( BasicNts & nb )
 {
-	insert_to ( & nb->_params_in, nb->_params_in.end() );
+	insert_to ( nb._params_in, nb._params_in.end() );
 }
 
-void Variable::insert_param_out_to ( BasicNts *nb )
+void Variable::insert_param_out_to ( BasicNts & nb )
 {
-	insert_to ( & nb->_params_out, nb->_params_out.end() );
+	insert_to ( nb._params_out, nb._params_out.end() );
 }
 
 void Variable::insert_before ( const Variable & var )
@@ -651,7 +651,7 @@ void Variable::insert_before ( const Variable & var )
 	if ( !var._parent_list )
 		throw std::logic_error ( "Variable does not have a parent" );
 
-	insert_to ( var._parent_list, var._pos );
+	insert_to ( *var._parent_list, var._pos );
 }
 
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )

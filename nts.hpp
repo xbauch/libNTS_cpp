@@ -93,7 +93,7 @@ class Instance
 		~Instance() = default;
 
 		void remove_from_parent();
-		void insert_to ( Nts * parent );
+		void insert_to ( Nts & parent );
 		void insert_before ( const Instance & i );
 
 		friend std::ostream & operator<< ( std::ostream &o, const Instance & );
@@ -150,7 +150,7 @@ class BasicNts
 		const Callees callees() const;
 
 		void remove_from_parent();
-		void insert_to ( Nts * parent );
+		void insert_to ( Nts & parent );
 
 		const Variables & variables()  const { return _variables;  }
 		const Variables & params_in()  const { return _params_in;  }
@@ -213,7 +213,7 @@ class Variable
 
 		// If variable is inserted into a parent, default move of variable
 		// or parent would break this relation.
-		void insert_to ( Variables * parent, const Variables::iterator & before );
+		void insert_to ( Variables & parent, const Variables::iterator & before );
 
 	public:
 		Variable ( DataType t, const std::string & name );
@@ -223,12 +223,12 @@ class Variable
 		virtual ~Variable() = default;
 
 		// Insert it as normal variable
-		void insert_to ( Nts * n );
-		void insert_to ( BasicNts *nb );
+		void insert_to ( Nts & n );
+		void insert_to ( BasicNts & nb );
 
 		// Insert it as input / output parameter
-		void insert_param_in_to  ( BasicNts * nb );
-		void insert_param_out_to ( BasicNts * nb );
+		void insert_param_in_to  ( BasicNts & nb );
+		void insert_param_out_to ( BasicNts & nb );
 
 		void insert_before ( const Variable & var );
 		void remove_from_parent();

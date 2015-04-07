@@ -23,9 +23,9 @@ struct Example
 			arg_2 = new BitVectorVariable ( "arg_2", 8 );
 			arg_ret = new BitVectorVariable ( "arg_ret", 16 );
 
-			arg_1->insert_param_in_to    ( basic );
-			arg_2->insert_param_in_to    ( basic );
-			arg_ret->insert_param_out_to ( basic );
+			arg_1->insert_param_in_to    ( *basic );
+			arg_2->insert_param_in_to    ( *basic );
+			arg_ret->insert_param_out_to ( *basic );
 		}
 
 		~Nts2()
@@ -53,9 +53,9 @@ struct Example
 			var_2 = new BitVectorVariable ( "var_2",  8 );
 			var_3 = new BitVectorVariable ( "var_3", 16 );
 
-			var_1->insert_to ( basic );
-			var_2->insert_to ( basic );
-			var_3->insert_to ( basic );
+			var_1->insert_to ( *basic );
+			var_2->insert_to ( *basic );
+			var_3->insert_to ( *basic );
 
 			auto s1 = new State ( "s1" );
 			auto s2 = new State ( "s2" );
@@ -141,11 +141,11 @@ struct Example_callees_callers
 		tr.push_back ( new Transition ( *ftr.back(), *s2, *s3 ) );
 
 		// After this block toplevel_nts owns all BasicNtses
-		nb[0]->insert_to ( &toplevel_nts );
-		nb[1]->insert_to ( &toplevel_nts );
+		nb[0]->insert_to ( toplevel_nts );
+		nb[1]->insert_to ( toplevel_nts );
 
-		bvvar[0]->insert_to ( & toplevel_nts );
-		bvvar[1]->insert_param_in_to (  nb[1] );
+		bvvar[0]->insert_to ( toplevel_nts );
+		bvvar[1]->insert_param_in_to (  *nb[1] );
 		bvvar[2]->insert_before ( *bvvar[1] );
 
 	}

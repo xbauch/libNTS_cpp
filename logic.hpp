@@ -66,7 +66,9 @@ class Term
 // * FormulaBop
 class Formula
 {
-
+	public:
+		Formula()          = default;
+		virtual ~Formula() = default;
 };
 
 class FormulaBop : public Formula
