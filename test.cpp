@@ -101,7 +101,8 @@ struct Example_callees_callers
 	vector < Transition * > tr;
 
 
-	Example_callees_callers()
+	Example_callees_callers() :
+		toplevel_nts ( "namedNts" )
 	{	
 		bvvar[0] = new BitVectorVariable ( "var1",  8 );
 		bvvar[1] = new BitVectorVariable ( "var2", 16 );

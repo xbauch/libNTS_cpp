@@ -22,6 +22,13 @@ using std::distance;
 // Nts                                //
 //------------------------------------//
 
+Nts::Nts ( const string & name ) :
+	_name ( name )
+{
+	;
+}
+
+
 Nts::~Nts()
 {
 	for ( auto i : _instances )

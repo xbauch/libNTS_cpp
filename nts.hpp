@@ -40,6 +40,8 @@ class Variable;
 class Nts
 {
 	private:
+		std::string _name;
+
 		std::list <Instance *> _instances;
 		friend class Instance;
 
@@ -51,7 +53,7 @@ class Nts
 		friend class Variable;
 
 	public:
-		Nts () = default;
+		explicit Nts ( const std::string & name );
 
 		// Copying breaks ownership
 		Nts ( const Nts & ) = delete;
@@ -64,6 +66,8 @@ class Nts
 		{
 			return _basics;
 		}
+
+		const std::string & name() const { return _name; }
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
