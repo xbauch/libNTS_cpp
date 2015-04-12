@@ -128,6 +128,12 @@ struct Example_callees_callers
 		auto *gt = new Relation ( RelationOp::gt,
 				unique_ptr<Term>(new VariableReference ( *bvvar[0], false )),
 				unique_ptr<Term>(new VariableReference ( *bvvar[1], false )) );
+
+		auto *bf = new FormulaBop ( BoolOp::And,
+				unique_ptr<Formula> ( gt ),
+				unique_ptr<Formula> ( gt->clone() ) );
+
+		cout << *bf;
 		
 
 		// It is not wise to call before BasicNts has all parameters
@@ -141,7 +147,7 @@ struct Example_callees_callers
 		tr.push_back ( new Transition ( *ctr.back(), *s1, *s3 ) );
 
 		// tr[2] - formula transition
-		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
+		ftr.push_back ( new FormulaTransitionRule ( bf ) );
 		tr.push_back ( new Transition ( *ftr.back(), *s1, *s4 ) );
 
 		// tr[3] - formula transition

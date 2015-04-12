@@ -3,10 +3,99 @@
 
 #include "nts.hpp"
 #include "logic.hpp"
+#include "to_csv.hpp"
 
 using namespace nts;
 using std::unique_ptr;
 using std::move;
+using std::ostream;
+
+const char * to_str ( BoolOp op )
+{
+	switch ( op )
+	{
+		case BoolOp::And:
+			return "&&";
+
+		case BoolOp::Or:
+			return "||";
+
+		case BoolOp::Imply:
+			return "=>";
+
+		case BoolOp::Equiv:
+			return "<=>";
+
+		default:
+			throw std::domain_error ( "Unknown value of BoolOp" );
+	}
+}
+
+const char * to_str ( ArithOp op )
+{
+	switch ( op )
+	{
+		case ArithOp::Add:
+			return "+";
+
+		case ArithOp::Sub:
+			return "-";
+
+		case ArithOp::Mul:
+			return "*";
+
+		case ArithOp::Div:
+			return "/";
+
+		case ArithOp::Mod:
+			return "%";
+
+		default:
+			throw std::domain_error ( "Unknown ArithOp" );
+	}
+}
+
+const char * to_str ( RelationOp op )
+{
+	switch ( op )
+	{
+		case RelationOp::eq:
+			return "=";
+
+		case RelationOp::neq:
+			return "!=";
+
+		case RelationOp::lt:
+			return "<";
+
+		case RelationOp::leq:
+			return "<=";
+
+		case RelationOp::gt:
+			return ">";
+
+		case RelationOp::geq:
+			return ">=";
+
+		default:
+			throw std::domain_error ( "Unknown RelationOp" );
+	}
+}
+
+const char * to_str ( Quantifier q  )
+{
+	switch ( q )
+	{
+		case Quantifier::Forall:
+			return "forall";
+
+		case Quantifier::Exists:
+			return "exists";
+
+		default:
+			throw std::domain_error ( "Unknown quantifier" );
+	}
+}
 
 //------------------------------------//
 // Term                               //
@@ -26,9 +115,20 @@ Term::Term ( const Term & orig ) :
 	;
 }
 
-Term * Term::clone() const
+ostream & nts::operator<< ( ostream & o, const Term & t )
 {
-	return new Term ( *this );
+	t.print ( o );
+	return o;
+}
+
+//------------------------------------//
+// Formula                            //
+//------------------------------------//
+
+ostream & nts::operator<< ( ostream & o, const Formula & f )
+{
+	f.print ( o );
+	return o;
 }
 
 //------------------------------------//
@@ -73,6 +173,11 @@ FormulaBop * FormulaBop::clone() const
 	return new FormulaBop ( *this );
 }
 
+void FormulaBop::print ( ostream & o ) const
+{
+	o << "( " << *_f[0] << " " << to_str ( _op ) << " " << *_f[1] << " )";
+}
+
 //------------------------------------//
 // FormulaNot                         //
 //------------------------------------//
@@ -101,6 +206,11 @@ const Formula & FormulaNot::formula() const
 FormulaNot * FormulaNot::clone() const
 {
 	return new FormulaNot ( *this );
+}
+
+void FormulaNot::print ( ostream & o ) const
+{
+	o << "not " << *_f;
 }
 
 //------------------------------------//
@@ -143,6 +253,17 @@ QuantifiedType::QuantifiedType ( QuantifiedType && old ) :
 {
 	_from = move ( old._from );
 	_to   = move ( old._to   );
+}
+
+ostream & nts::operator<< ( ostream & o, const QuantifiedType & qt )
+{
+	qt._t.print ( o );
+	if ( qt._from )
+	{
+		o << "[" << *qt._from << ", " << *qt._to << "]";
+	}
+
+	return o;
 }
 
 //------------------------------------//
@@ -206,6 +327,21 @@ QuantifiedVariableList::~QuantifiedVariableList ()
 	}
 }
 
+ostream & nts::operator<< ( ostream & o, const QuantifiedVariableList & qvl )
+{
+	auto print_name = [] ( ostream & o, const Variable *v ) 
+	{
+		o << v->name();
+	};
+
+	o << to_str ( qvl._q ) << " ";
+	to_csv ( o, qvl._vars.cbegin(), qvl._vars.cend(), print_name, ", " );
+	o << " : " << qvl._qtype;
+
+
+	return o;
+}
+
 
 //------------------------------------//
 // QuantifiedFormula                  //
@@ -249,6 +385,10 @@ QuantifiedFormula * QuantifiedFormula::clone() const
 	return new QuantifiedFormula ( *this );
 }
 
+void QuantifiedFormula::print ( ostream & o ) const
+{
+	o << _qvlist << " . " << *_f;
+}
 
 //------------------------------------//
 // Havoc                              //
@@ -275,6 +415,16 @@ Havoc::Havoc ( Havoc && old ) :
 Havoc * Havoc::clone() const
 {
 	return new Havoc ( *this );
+}
+
+void Havoc::print ( ostream & o ) const
+{
+	o << "havoc ( ";
+	to_csv ( o, _vars.cbegin(), _vars.cend(),
+			[] ( ostream & o, const Variable *var ) {
+				o << var->name();
+			}, ", " );
+	o << " )";
 }
 
 //------------------------------------//
@@ -304,6 +454,11 @@ BooleanTerm * BooleanTerm::clone() const
 	return new BooleanTerm ( *this );
 }
 
+void BooleanTerm::print ( std::ostream & o ) const
+{
+	o << *_t;
+}
+
 //------------------------------------//
 // Relation                           //
 //------------------------------------//
@@ -318,11 +473,11 @@ void Relation::check_type ( const DataType &t1, const DataType &t2 )
 }
 
 Relation::Relation ( RelationOp op, unique_ptr<Term> t1, unique_ptr<Term> t2 ) :
-	_op ( op          ),
-	_t1 ( move ( t1 ) ),
-	_t2 ( move ( t2 ) )
+	_op ( op )
 {
 	check_type( t1->type(), t2->type() );
+	_t1 = move ( t1 );
+	_t2 = move ( t2 );
 }
 
 Relation::Relation ( const Relation & orig ) :
@@ -345,6 +500,11 @@ Relation * Relation::clone() const
 	return new Relation ( *this );
 }
 
+void Relation::print ( std::ostream & o ) const
+{
+	o << "( " << *_t1 << " " << to_str ( _op ) << " " << *_t2 << " )";
+}
+
 //------------------------------------//
 // ArithmeticOperation                //
 //------------------------------------//
@@ -356,6 +516,23 @@ ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 	_op ( op ),
 	_t1 ( move ( t1 ) ),
 	_t2 ( move ( t2 ) )
+{
+	;
+}
+
+ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
+	Term ( false, orig.type() ),
+	_op  ( orig._op )
+{
+	_t1 = unique_ptr<Term> ( orig._t1->clone() );
+	_t2 = unique_ptr<Term> ( orig._t2->clone() );
+}
+
+ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
+	Term ( false, old.type() ),
+	_op  ( std::move ( old._op ) ),
+	_t1  ( std::move ( old._t1 ) ),
+	_t2  ( std::move ( old._t2 ) )
 {
 	;
 }
@@ -405,10 +582,12 @@ const Term & ArithmeticOperation::term2() const
 
 ArithmeticOperation * ArithmeticOperation::clone() const
 {
-	return new ArithmeticOperation ( _op,
-			unique_ptr<Term>(_t1->clone()),
-			unique_ptr<Term>(_t2->clone())
-			);
+	return new ArithmeticOperation ( *this );
+}
+
+void ArithmeticOperation::print ( ostream & o ) const
+{
+	o << "( " << *_t1 << " " << to_str ( _op ) << " " << *_t2 << " )";
 }
 
 //------------------------------------//
@@ -427,6 +606,11 @@ IntConstant * IntConstant::clone() const
 	return new IntConstant ( _value );
 }
 
+void IntConstant::print ( ostream & o ) const
+{
+	o << _value;
+}
+
 //------------------------------------//
 // VariableReference n                //
 //------------------------------------//
@@ -443,4 +627,12 @@ VariableReference * VariableReference::clone() const
 {
 	return new VariableReference ( *_var, _primed );
 }
+
+void VariableReference::print ( ostream & o ) const
+{
+	o << _var->name();
+	if ( _primed )
+		o << "'";
+}
+
 

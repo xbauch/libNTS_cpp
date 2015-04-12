@@ -2,6 +2,7 @@
 #define NTS_LOGIC_HPP_
 #pragma once
 
+#include <ostream>
 #include <vector>
 #include <list>
 #include <initializer_list>
@@ -55,6 +56,9 @@ class Term
 		bool     _minus;
 		DataType _type;
 
+	protected:
+		virtual void print ( std::ostream & o ) const = 0;
+
 	public:
 		// type can be whatever type
 		Term ( bool minus, DataType type ); 
@@ -67,7 +71,9 @@ class Term
 		// Result is guaranteed to be non-null
 		// Every child should override this function
 		// and return its own type.
-		virtual Term * clone() const;
+		virtual Term * clone() const = 0;
+
+		friend std::ostream & operator<< ( std::ostream & o, const Term & t );
 };
 
 // Formulas have always type Bool
@@ -77,11 +83,16 @@ class Term
 // * FormulaBop
 class Formula
 {
+	protected:
+		virtual void print ( std::ostream & o ) const = 0;
+
 	public:
 		Formula()          = default;
 		virtual ~Formula() = default;
 
 		virtual Formula * clone() const = 0;
+
+		friend std::ostream & operator<< ( std::ostream &, const Formula & );
 };
 
 // TODO: Some syntactic sugar for those formulas?
@@ -91,6 +102,9 @@ class FormulaBop : public Formula
 	private:
 		BoolOp _op;
 		std::unique_ptr<Formula> _f[2];
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		FormulaBop ( BoolOp op,
@@ -111,6 +125,9 @@ class FormulaNot : public Formula
 {
 	private:
 		std::unique_ptr<Formula>  _f;
+		
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		explicit FormulaNot ( std::unique_ptr<Formula> f );
@@ -130,7 +147,7 @@ class QuantifiedType
 
 		std::unique_ptr<Term> _from;
 		std::unique_ptr<Term> _to;
-
+		
 	public:
 		QuantifiedType ( DataType t );
 		QuantifiedType ( DataType t,
@@ -144,6 +161,8 @@ class QuantifiedType
 		// may be null
 		const Term * from() { return _from.get(); }
 		const Term * to()   { return _to.get();   }
+
+		friend std::ostream & operator<< ( std::ostream & o, const QuantifiedType & qt );
 };
 
 // Owns all variables inserted in Variable::insert_to()
@@ -168,6 +187,9 @@ class QuantifiedVariableList
 		const Quantifier            & quantifier() const { return _q; }
 		const QuantifiedType        & qtype()      const { return _qtype; }
 		const std::list<Variable *> & variables()  const { return _vars; }
+
+		friend std::ostream & operator<< ( std::ostream & o,
+				const QuantifiedVariableList & qvl );
 };
 
 class QuantifiedFormula : public Formula
@@ -175,6 +197,9 @@ class QuantifiedFormula : public Formula
 	private:
 		QuantifiedVariableList   _qvlist;
 		std::unique_ptr<Formula> _f;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		QuantifiedFormula (
@@ -212,6 +237,9 @@ class Havoc : public AtomicProposition
 	private:
 		std::vector < const Variable *> _vars;
 
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
 	public:
 		explicit Havoc ( const std::initializer_list < const Variable * > & list );
 		Havoc ( const Havoc & orig );
@@ -227,6 +255,9 @@ class BooleanTerm : public AtomicProposition
 {
 	private:
 		std::unique_ptr<Term> _t;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		explicit BooleanTerm ( std::unique_ptr<Term> t);
@@ -247,6 +278,9 @@ class Relation : public AtomicProposition
 		std::unique_ptr<Term> _t2;
 
 		static void check_type ( const DataType &t1, const DataType &t2 );
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		Relation ( RelationOp op,
@@ -276,11 +310,18 @@ class ArithmeticOperation : public Term
 
 		static DataType calc_type ( const Term *t1, const Term *t2 );
 
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
 	public:
 
 		ArithmeticOperation ( ArithOp op,
 				std::unique_ptr < Term > t1,
 				std::unique_ptr < Term > t2 );
+
+		ArithmeticOperation ( const ArithmeticOperation & orig );
+		ArithmeticOperation ( ArithmeticOperation && old );
+		~ArithmeticOperation() = default;
 
 		const ArithOp & operation() const;
 		const Term & term1() const;
@@ -314,6 +355,9 @@ class IntConstant : public Constant
 	private:
 		int _value;
 
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
 	public:
 		explicit IntConstant ( int value );
 
@@ -326,6 +370,9 @@ class VariableReference : public Leaf
 	private:
 		const Variable * _var;
 		const bool       _primed;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		VariableReference ( const Variable &var, bool primed );
