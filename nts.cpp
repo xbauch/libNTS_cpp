@@ -568,16 +568,21 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 {
 	o << "{ ";
 
-	if ( _var_out.size() > 1 )
-		o << "( ";
+	if ( _var_out.size() > 0 )
+	{
+		if ( _var_out.size() > 1 )
+			o << "( ";
 
-	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
-		( o, _var_out.cbegin(), _var_out.cend() );
+		to_csv < decltype(_var_out)::const_iterator, print_variable_name >
+			( o, _var_out.cbegin(), _var_out.cend() );
 
-	if ( _var_out.size() > 1 )
-		o << " )";
+		if ( _var_out.size() > 1 )
+			o << " )";
 
-	o << " = " << _dest.name() << " ( ";
+		o << " = ";
+	}
+
+	o << _dest.name() << " ( ";
 	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
 		( o, _var_in.cbegin(), _var_in.cend() );
 	o << " ) }";
