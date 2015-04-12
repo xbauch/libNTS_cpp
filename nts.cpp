@@ -6,6 +6,7 @@
 #include <utility>    // move()
 #include <iterator>   // distance()
 
+#include "logic.hpp"
 #include "to_csv.hpp"
 #include "FilterIterator.hpp"
 
@@ -646,12 +647,27 @@ void Variable::insert_param_out_to ( BasicNts & nb )
 	insert_to ( nb._params_out, nb._params_out.end() );
 }
 
+void Variable::insert_to ( QuantifiedVariableList & ql )
+{
+	if ( ql.qtype().type() != _type )
+		throw TypeError();
+
+	insert_to ( ql._vars, ql._vars.end() );
+}
+
 void Variable::insert_before ( const Variable & var )
 {
 	if ( !var._parent_list )
 		throw std::logic_error ( "Variable does not have a parent" );
 
 	insert_to ( *var._parent_list, var._pos );
+}
+
+Variable * Variable::clone() const
+{
+	Variable *v = new Variable ( _type, _name );
+
+	return v;
 }
 
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )

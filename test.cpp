@@ -1,6 +1,8 @@
 #include <vector>
 #include <iostream>
+
 #include "nts.hpp"
+#include "logic.hpp"
 
 using namespace std;
 using namespace nts;
@@ -121,6 +123,12 @@ struct Example_callees_callers
 		{
 			s->insert_to ( *nb[0] );
 		}
+
+		// Formulas
+		auto *gt = new Relation ( RelationOp::gt,
+				unique_ptr<Term>(new VariableReference ( *bvvar[0], false )),
+				unique_ptr<Term>(new VariableReference ( *bvvar[1], false )) );
+		
 
 		// It is not wise to call before BasicNts has all parameters
 

@@ -3,9 +3,12 @@
 #pragma once
 
 #include <vector>
+#include <list>
 #include <initializer_list>
+#include <memory>
 #include "data_types.hpp"
 
+// TODO: Substitute term with another term
 
 namespace nts
 {
@@ -55,8 +58,16 @@ class Term
 	public:
 		// type can be whatever type
 		Term ( bool minus, DataType type ); 
+		Term ( const Term & orig );
 
 		const DataType & type () const { return _type; }
+
+		// Caller is responsible to manage this
+		// (can not use unique_ptr, they are not covariant )
+		// Result is guaranteed to be non-null
+		// Every child should override this function
+		// and return its own type.
+		virtual Term * clone() const;
 };
 
 // Formulas have always type Bool
@@ -69,80 +80,131 @@ class Formula
 	public:
 		Formula()          = default;
 		virtual ~Formula() = default;
+
+		virtual Formula * clone() const = 0;
 };
+
+// TODO: Some syntactic sugar for those formulas?
 
 class FormulaBop : public Formula
 {
 	private:
 		BoolOp _op;
-		const Formula * _f[2];
+		std::unique_ptr<Formula> _f[2];
 
 	public:
-		FormulaBop ( BoolOp op, const Formula *f1, const Formula *f2 );
-		const Formula * formula_1 () const;
-		const Formula * formula_2 () const;
+		FormulaBop ( BoolOp op,
+				std::unique_ptr<Formula> f1,
+				std::unique_ptr<Formula> f2 );
+		
+		FormulaBop ( const FormulaBop & orig );
+		FormulaBop ( FormulaBop && old );
+		virtual ~FormulaBop() = default;
+
+		const Formula & formula_1 () const;
+		const Formula & formula_2 () const;
+
+		virtual FormulaBop * clone() const override;
 };
 
 class FormulaNot : public Formula
 {
 	private:
-		const Formula * _f;
+		std::unique_ptr<Formula>  _f;
 
 	public:
-		FormulaNot ( const Formula * f );
+		explicit FormulaNot ( std::unique_ptr<Formula> f );
+		FormulaNot ( const FormulaNot & orig );
+		FormulaNot ( FormulaNot && old );
+		virtual ~FormulaNot() = default;
 
-		const Formula * formula() const;
+		const Formula & formula() const;
+
+		virtual FormulaNot * clone() const override;
 };
 
 class QuantifiedType
 {
 	private:
 		DataType     _t;
-		const Term * _from;
-		const Term * _to;
+
+		std::unique_ptr<Term> _from;
+		std::unique_ptr<Term> _to;
 
 	public:
 		QuantifiedType ( DataType t );
-		QuantifiedType ( DataType t, const Term * from, const Term * to );
+		QuantifiedType ( DataType t,
+				std::unique_ptr<Term> from,
+				std::unique_ptr<Term> to );
+
+		QuantifiedType ( const QuantifiedType & orig );
+		QuantifiedType ( QuantifiedType && old );
 
 		const DataType & type () const { return _t; }
-		const Term * from() { return _from; }
-		const Term * to()   { return _to;   }
+		// may be null
+		const Term * from() { return _from.get(); }
+		const Term * to()   { return _to.get();   }
+};
+
+// Owns all variables inserted in Variable::insert_to()
+class QuantifiedVariableList
+{
+	private:
+		Quantifier               _q;
+		QuantifiedType           _qtype;
+		std::list < Variable * > _vars;
+
+		friend class Variable;
+
+	public:
+		QuantifiedVariableList ( Quantifier q, const QuantifiedType &  qtype );
+		QuantifiedVariableList ( Quantifier q, const QuantifiedType && qtype );
+		QuantifiedVariableList ( const QuantifiedVariableList & orig );
+		QuantifiedVariableList ( QuantifiedVariableList && old );
+
+		~QuantifiedVariableList();
+
+		Quantifier                  & quantifier() { return _q; }
+		const Quantifier            & quantifier() const { return _q; }
+		const QuantifiedType        & qtype()      const { return _qtype; }
+		const std::list<Variable *> & variables()  const { return _vars; }
 };
 
 class QuantifiedFormula : public Formula
 {
 	private:
-		Quantifier _q;
-		std::vector < const Variable * > _vars;
-		QuantifiedType _qtype;
-		const Formula * _f;
+		QuantifiedVariableList   _qvlist;
+		std::unique_ptr<Formula> _f;
 
 	public:
 		QuantifiedFormula (
-				Quantifier q,
-				std::initializer_list < const Variable * > variables,
-				const QuantifiedType & type,
-				const Formula * f );
+				Quantifier                 q,
+				const QuantifiedType     & type,
+				std::unique_ptr<Formula>   f    );
 
-		const std::vector < const Variable * > & variables() const
-		{ return _vars; }
-		const QuantifiedType & qtype() const
-		{ return _qtype; }
-		const Formula * formula() const
-		{ return _f; }
-		const Quantifier & quantifier() const
-		{ return _q; }
+		QuantifiedFormula (
+				Quantifier                   q,
+				const QuantifiedType     &&  type,
+				std::unique_ptr<Formula>     f    );
+
+		QuantifiedFormula ( const QuantifiedFormula & orig );
+		QuantifiedFormula ( QuantifiedFormula && old );
+
+		virtual ~QuantifiedFormula() = default;
+
+		const QuantifiedVariableList & list() const { return _qvlist; }
+
+		virtual QuantifiedFormula * clone() const override;
 };
 
 // Atomic proposition is a:
 // * BooleanTerm
 // * Havoc
 // * Relation
-// * ArrayWrite ( not implemented )
+// * ArrayWrite ( not implemented ) : TODO
 class AtomicProposition : public Formula
 {
-
+	virtual AtomicProposition * clone() const override = 0;
 };
 
 class Havoc : public AtomicProposition
@@ -151,71 +213,100 @@ class Havoc : public AtomicProposition
 		std::vector < const Variable *> _vars;
 
 	public:
-		Havoc ( const std::initializer_list < const Variable * > & list );
+		explicit Havoc ( const std::initializer_list < const Variable * > & list );
+		Havoc ( const Havoc & orig );
+		Havoc ( Havoc && old );
+		virtual ~Havoc() = default;
+
 		const std::vector < const Variable *> & variables () const;
+
+		virtual Havoc * clone() const override;
 };
 
 class BooleanTerm : public AtomicProposition
 {
 	private:
-		const Term * _t;
+		std::unique_ptr<Term> _t;
 
 	public:
-		BooleanTerm ( const Term * t);
+		explicit BooleanTerm ( std::unique_ptr<Term> t);
+		BooleanTerm ( const BooleanTerm & orig );
+		BooleanTerm ( BooleanTerm && old );
+		virtual ~BooleanTerm() = default;
 
-		const Term * term () const;
+		const Term & term () const { return *_t; }
+
+		virtual BooleanTerm * clone() const override;
 };
 
 class Relation : public AtomicProposition
 {
 	private:
 		RelationOp   _op;
-		const Term * _t1;
-		const Term * _t2;
+		std::unique_ptr<Term> _t1;
+		std::unique_ptr<Term> _t2;
 
 		static void check_type ( const DataType &t1, const DataType &t2 );
 
 	public:
-		Relation ( RelationOp op, const Term *t1, const Term *t2 );
+		Relation ( RelationOp op,
+				std::unique_ptr<Term> t1,
+				std::unique_ptr<Term> t2 );
 
-		const RelationOp & operation() const;
-		const Term * term1() const;
-		const Term * term2() const;
+		Relation ( const Relation & orig );
+		Relation ( Relation && old );
+		virtual ~Relation() = default;
+
+		const RelationOp & operation() const { return _op; }
+		const Term & term1() const { return *_t1; }
+		const Term & term2() const { return *_t2; }
+
+		virtual Relation * clone() const override;
 };
 
 
 class ArithmeticOperation : public Term
 {
 	private:
-		ArithOp      _op;
-		const Term * _t1;
-		const Term * _t2;
+		using p_Term = std::unique_ptr < Term >;
+
+		ArithOp _op;
+		p_Term  _t1;
+		p_Term  _t2;
 
 		static DataType calc_type ( const Term *t1, const Term *t2 );
 
 	public:
 
-		ArithmeticOperation ( ArithOp op, const Term *t1, const Term *t2 );
+		ArithmeticOperation ( ArithOp op,
+				std::unique_ptr < Term > t1,
+				std::unique_ptr < Term > t2 );
 
 		const ArithOp & operation() const;
-		const Term * term1() const;
-		const Term * term2() const;
+		const Term & term1() const;
+		const Term & term2() const;
+
+		virtual ArithmeticOperation * clone() const override;
 };
 
-class Leaf : Term
+class Leaf : public Term
 {
 	public:
 		Leaf ( DataType type ) :
 			Term ( false, type )
 		{ ; }
+
+		virtual Leaf * clone() const override = 0;
 };
 
 class Constant : public Leaf
 {
 	public:
-		Constant ( DataType type ) :
+		explicit Constant ( DataType type ) :
 			Leaf ( type )
 		{ ; }
+
+		virtual Constant * clone() const override = 0;
 };
 
 class IntConstant : public Constant
@@ -224,18 +315,25 @@ class IntConstant : public Constant
 		int _value;
 
 	public:
-		IntConstant ( int value );
+		explicit IntConstant ( int value );
+
+		virtual IntConstant * clone() const override;
 };
 
-
+// TODO
 class VariableReference : public Leaf
 {
 	private:
 		const Variable * _var;
-		bool             _primed;
+		const bool       _primed;
 
 	public:
-		VariableReference ( const Variable *var, bool primed );
+		VariableReference ( const Variable &var, bool primed );
+
+		bool primed() const { return _primed; }
+		const Variable & variable () const { return *_var; }
+
+		virtual VariableReference * clone() const override;
 };
 
 #if 0

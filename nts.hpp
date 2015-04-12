@@ -198,6 +198,7 @@ class State
 		friend std::ostream & operator<< ( std::ostream &, const State & );
 };
 
+class QuantifiedVariableList;
 class Variable
 {
 	private:
@@ -230,14 +231,18 @@ class Variable
 		void insert_param_in_to  ( BasicNts & nb );
 		void insert_param_out_to ( BasicNts & nb );
 
+		// Make this variable quantified
+		void insert_to ( QuantifiedVariableList & ql );
+
 		void insert_before ( const Variable & var );
 		void remove_from_parent();
 
-
-		void insert_copy_to ( const std::string & prefix, BasicNts *nb ) const;
-
+	
 		const std::string & name() const { return _name; }
 		const DataType & type() const { return _type; }
+
+		Variable * clone() const;
+
 
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
 };
