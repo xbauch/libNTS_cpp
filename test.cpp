@@ -68,7 +68,7 @@ struct Example
 			s3->insert_to ( *basic );
 
 
-			ctr1 = new CallTransitionRule ( n->basic, { var_1, var_2}, { var_3 } );
+			ctr1 = new CallTransitionRule ( *n->basic, { var_1, var_2}, { var_3 } );
 			// Transition automatically belongs to BasicNts,
 			// which owns given states
 			new Transition ( *ctr1, *s1, *s2 );
@@ -133,25 +133,27 @@ struct Example_callees_callers
 				unique_ptr<Formula> ( gt ),
 				unique_ptr<Formula> ( gt->clone() ) );
 
-		cout << *bf;
 		
-
 		// It is not wise to call before BasicNts has all parameters
 
 		// tr[0] - call transition
-		ctr.push_back ( new CallTransitionRule ( nb[1], {}, {} ) );
+		ctr.push_back ( new CallTransitionRule ( *nb[1], {}, {} ) );
 		tr.push_back ( new Transition ( *ctr.back(), *s1, *s2 ) );
 
 		// tr[1] - call transition
-		ctr.push_back ( new CallTransitionRule ( nb[1], {}, {} ) );
+		ctr.push_back ( new CallTransitionRule ( *nb[1], {}, {} ) );
 		tr.push_back ( new Transition ( *ctr.back(), *s1, *s3 ) );
 
 		// tr[2] - formula transition
-		ftr.push_back ( new FormulaTransitionRule ( bf ) );
+		ftr.push_back (
+				new FormulaTransitionRule (
+					unique_ptr<Formula> ( bf ) ) );
 		tr.push_back ( new Transition ( *ftr.back(), *s1, *s4 ) );
 
 		// tr[3] - formula transition
-		ftr.push_back ( new FormulaTransitionRule ( nullptr ) );
+		ftr.push_back (
+				new FormulaTransitionRule (
+					unique_ptr<Formula> ( bf->clone() ) ) );
 		tr.push_back ( new Transition ( *ftr.back(), *s2, *s3 ) );
 
 		// After this block toplevel_nts owns all BasicNtses

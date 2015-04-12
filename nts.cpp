@@ -18,6 +18,7 @@ using std::numeric_limits;
 using std::find;
 using std::ostream;
 using std::distance;
+using std::unique_ptr;
 
 //------------------------------------//
 // Nts                                //
@@ -386,7 +387,7 @@ void BasicNts::Callers::iterator::skip()
 			{
 				auto &ctr = static_cast< const CallTransitionRule &>
 					( (*_Transition)->rule() );
-				if ( ctr.dest() == this->_callee)
+				if ( & ctr.dest() == this->_callee)
 					return;
 			}
 			_Transition++;
@@ -488,17 +489,16 @@ ostream & nts::operator<< ( ostream &o, const TransitionRule &tr )
 // FormulaTransitionRule              //
 //------------------------------------//
 
-FormulaTransitionRule::FormulaTransitionRule ( const Formula *f ) :
+FormulaTransitionRule::FormulaTransitionRule ( unique_ptr<Formula> f ) :
 	TransitionRule ( Kind::Formula ),
-	_f             ( f             )
+	_f             ( move ( f )    )
 {
 	;
 }
 
 ostream & FormulaTransitionRule::print ( std::ostream & o ) const
 {
-	// TODO implement
-	o << "{}";
+	o << "{ " << *this->_f << " }";
 	return o;
 }
 
@@ -508,15 +508,15 @@ ostream & FormulaTransitionRule::print ( std::ostream & o ) const
 
 CallTransitionRule::CallTransitionRule
 (
-		BasicNts   * dest,
+		BasicNts   & dest,
 		VariableList in,
 		VariableList out
 ) :
 	TransitionRule ( Kind::Call ),
 	_dest          ( dest       )
 {
-	const auto & params_in  = dest->params_in();
-	const auto & params_out = dest->params_out();
+	const auto & params_in  = dest.params_in();
+	const auto & params_out = dest.params_out();
 
 	if ( in.size() != params_in.size() )
 		throw TypeError();
@@ -577,7 +577,7 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 	if ( _var_out.size() > 1 )
 		o << " )";
 
-	o << " = " << _dest->name() << " ( ";
+	o << " = " << _dest.name() << " ( ";
 	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
 		( o, _var_in.cbegin(), _var_in.cend() );
 	o << " ) }";

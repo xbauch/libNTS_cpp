@@ -7,6 +7,7 @@
 #include <string>
 #include <iterator>
 #include <ostream>
+#include <memory>
 
 #include "data_types.hpp"
 
@@ -327,17 +328,17 @@ class CallTransitionRule : public TransitionRule
 		using Variables     = std::vector < const Variable * >;
 
 	private:
-		BasicNts * _dest;
+		BasicNts & _dest;
 		Variables  _var_in;
 		Variables  _var_out;
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
 
 	public:
-		CallTransitionRule ( BasicNts *dest, VariableList in, VariableList out );
+		CallTransitionRule ( BasicNts & dest, VariableList in, VariableList out );
 		virtual ~CallTransitionRule() = default;
 
-		BasicNts * dest() const { return _dest; }
+		BasicNts & dest() const { return _dest; }
 
 		const Variables & variables_in()  const { return _var_in;  }
 		const Variables & variables_out() const { return _var_out; }
@@ -347,15 +348,15 @@ class Formula;
 class FormulaTransitionRule : public TransitionRule
 {
 	private:
-		const Formula * _f;
+		std::unique_ptr<Formula> _f;
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
 
 	public:
-		explicit FormulaTransitionRule ( const Formula * f );
+		explicit FormulaTransitionRule ( std::unique_ptr<Formula> f );
 		virtual ~FormulaTransitionRule () = default;
 
-		const Formula * formula() const { return _f; }
+		const Formula & formula() const { return *_f; }
 };
 
 
