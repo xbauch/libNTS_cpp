@@ -364,6 +364,24 @@ class IntConstant : public Constant
 		virtual IntConstant * clone() const override;
 };
 
+// Constant of arbitrary type, stored in string
+class UserConstant : public Constant
+{
+	private:
+		std::string _value;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		explicit UserConstant ( DataType type, std::string  & value );
+		explicit UserConstant ( DataType type, std::string && value );
+		UserConstant ( const UserConstant & orig );
+		UserConstant ( UserConstant && old );
+
+		virtual UserConstant * clone() const override;
+};
+
 // TODO
 class VariableReference : public Leaf
 {

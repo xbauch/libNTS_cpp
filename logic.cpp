@@ -9,6 +9,7 @@ using namespace nts;
 using std::unique_ptr;
 using std::move;
 using std::ostream;
+using std::string;
 
 const char * to_str ( BoolOp op )
 {
@@ -612,7 +613,50 @@ void IntConstant::print ( ostream & o ) const
 }
 
 //------------------------------------//
-// VariableReference n                //
+// UserConstant                       //
+//------------------------------------//
+
+UserConstant::UserConstant ( DataType type, string & value ) :
+	Constant ( type  ),
+	_value   ( value )
+{
+	;
+}
+
+UserConstant::UserConstant ( DataType type, string && value ) :
+	Constant ( type  ),
+	_value   ( value )
+{
+	;
+}
+
+
+UserConstant::UserConstant ( const UserConstant & orig ) :
+	Constant ( orig.type() ),
+	_value   ( orig._value )
+{
+	;
+}
+
+UserConstant::UserConstant ( UserConstant && old ) :
+	Constant ( old.type()          ),
+	_value   ( move ( old._value ) )
+{
+	;
+}
+
+void UserConstant::print ( ostream & o ) const
+{
+	o << _value;
+}
+
+UserConstant * UserConstant::clone() const
+{
+	return new UserConstant ( *this );
+}
+
+//------------------------------------//
+// VariableReference                  //
 //------------------------------------//
 
 VariableReference::VariableReference ( const Variable &var, bool primed ) :
