@@ -30,7 +30,6 @@ Nts::Nts ( const string & name ) :
 	;
 }
 
-
 Nts::~Nts()
 {
 	for ( auto i : _instances )
@@ -46,6 +45,19 @@ Nts::~Nts()
 	_vars.clear();
 }
 
+ostream & nts::operator<< ( ostream & o , const Nts & nts )
+{
+	o << "nts " << nts._name << ";\n";
+	to_csv ( o, nts._vars.cbegin(), nts._vars.cend(),
+			ptr_print_function<Variable>, "\n" ) << "\n";
+
+	to_csv ( o, nts._instances.cbegin(), nts._instances.cend(),
+			ptr_print_function<Instance>, "\n" ) << "\n";
+
+	to_csv ( o, nts._basics.cbegin(), nts._basics.cend(),
+			ptr_print_function<BasicNts>, "\n" ) << "\n";
+	return o;
+}
 
 //------------------------------------//
 // Instance                           //
@@ -217,16 +229,8 @@ void BasicNts::remove_from_parent()
 std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
 {
 	// Prints variable
-	auto var_pr = [] ( ostream &o, Variable *v )
-	{
-		o << *v;
-	};
-
-	auto st_pr = [] ( ostream &o, const State *s )
-	{
-		o << *s;
-	};
-
+	auto var_pr = ptr_print_function < Variable >;
+	auto st_pr  = ptr_print_function < State >;
 
 	o << bn._name << " {\n";
 

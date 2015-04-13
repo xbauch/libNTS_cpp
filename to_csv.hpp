@@ -8,6 +8,12 @@
 template < typename T>
 using print_function = std::function <void ( std::ostream &, T ) >;
 
+template < typename T>
+void ptr_print_function ( std::ostream & o, T const * ptr )
+{
+	o << *ptr;
+}
+
 template < typename InputIt >
 std::ostream & to_csv ( std::ostream &o,
 		InputIt first,
