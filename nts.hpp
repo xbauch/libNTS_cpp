@@ -267,7 +267,7 @@ class Transition
 
 		BasicNts & _parent;
 		Transitions::iterator _pos;
-		TransitionRule & _rule;
+		std::unique_ptr < TransitionRule > _rule;
 
 		State & _from;
 		State & _to;
@@ -283,10 +283,10 @@ class Transition
 		// Transition becomes the owner of 'rule'
 		// Both states must belong to some BasicNts
 		// and they must belong to the same BasicNts
-		Transition ( TransitionRule & rule, State &s1, State &s2 );
+		Transition ( std::unique_ptr<TransitionRule> rule, State &s1, State &s2 );
 		~Transition();
 
-		const TransitionRule & rule() const { return _rule; }
+		const TransitionRule & rule() const { return *_rule; }
 		const State & from() const { return _from; }
 		const State & to() const { return _to; }
 

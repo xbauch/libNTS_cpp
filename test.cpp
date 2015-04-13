@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <memory>
 
 #include "nts.hpp"
 #include "logic.hpp"
@@ -68,10 +69,10 @@ struct Example
 			s3->insert_to ( *basic );
 
 
-			ctr1 = new CallTransitionRule ( *n->basic, { var_1, var_2}, { var_3 } );
+			ctr1 = new CallTransitionRule ( *n->basic, { var_1, var_2 }, { var_3 } );
 			// Transition automatically belongs to BasicNts,
 			// which owns given states
-			new Transition ( *ctr1, *s1, *s2 );
+			new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
 		}
 		~Nts1()
 		{
@@ -98,8 +99,6 @@ struct Example_callees_callers
 	BasicNts *nb[2];
 	Nts toplevel_nts;
 
-	vector < CallTransitionRule *> ctr;
-	vector < FormulaTransitionRule *> ftr;
 	vector < Transition * > tr;
 
 
@@ -137,24 +136,26 @@ struct Example_callees_callers
 		// It is not wise to call before BasicNts has all parameters
 
 		// tr[0] - call transition
-		ctr.push_back ( new CallTransitionRule ( *nb[1], {}, {} ) );
-		tr.push_back ( new Transition ( *ctr.back(), *s1, *s2 ) );
+	
+		unique_ptr < TransitionRule > rule;
+		rule = unique_ptr < TransitionRule > ( new CallTransitionRule ( *nb[1], {}, {} ) );
+		tr.push_back ( new Transition ( move ( rule ), *s1, *s2 ) );
 
 		// tr[1] - call transition
-		ctr.push_back ( new CallTransitionRule ( *nb[1], {}, {} ) );
-		tr.push_back ( new Transition ( *ctr.back(), *s1, *s3 ) );
+		rule = unique_ptr < TransitionRule > ( new CallTransitionRule ( *nb[1], {}, {} ) );
+		tr.push_back ( new Transition ( move ( rule ), *s1, *s3 ) );
 
 		// tr[2] - formula transition
-		ftr.push_back (
+		rule = unique_ptr < TransitionRule > (
 				new FormulaTransitionRule (
 					unique_ptr<Formula> ( bf ) ) );
-		tr.push_back ( new Transition ( *ftr.back(), *s1, *s4 ) );
+		tr.push_back ( new Transition ( move ( rule ), *s1, *s4 ) );
 
 		// tr[3] - formula transition
-		ftr.push_back (
+		rule = unique_ptr < TransitionRule > (
 				new FormulaTransitionRule (
 					unique_ptr<Formula> ( bf->clone() ) ) );
-		tr.push_back ( new Transition ( *ftr.back(), *s2, *s3 ) );
+		tr.push_back ( new Transition ( move ( rule ), *s2, *s3 ) );
 
 		// After this block toplevel_nts owns all BasicNtses
 		nb[0]->insert_to ( toplevel_nts );

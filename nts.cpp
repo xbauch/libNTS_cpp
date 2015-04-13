@@ -440,11 +440,10 @@ bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
 // Transition                         //
 //------------------------------------//
 
-Transition::Transition ( TransitionRule & rule, State &s1, State &s2 ) :
-	_parent ( *s1._parent ),
-	_rule   ( rule        ),
-	_from   ( s1          ),
-	_to     ( s2          )
+Transition::Transition ( unique_ptr<TransitionRule> rule, State &s1, State &s2 ) :
+	_parent ( *s1._parent   ),
+	_from   ( s1            ),
+	_to     ( s2            )
 {
 	if ( !s1._parent || !s2._parent )
 		throw std::logic_error ( "Transition states must have parents" );
@@ -452,7 +451,8 @@ Transition::Transition ( TransitionRule & rule, State &s1, State &s2 ) :
 	if ( s1._parent != s2._parent )
 		throw std::logic_error ( "Transition states must have the same parents" );
 
-	rule._t = this;
+	_rule = move ( rule );
+	_rule->_t = this;
 
 	_st_from_pos = _from._outgoing_tr.insert ( _from._outgoing_tr.cend(), this );
 	_st_to_pos   = _to._incoming_tr.insert ( _to._incoming_tr.cend(), this );
@@ -466,12 +466,11 @@ Transition::~Transition()
 	_to._incoming_tr.erase ( _st_to_pos );
 
 	_parent._transitions.erase ( _pos );
-	delete &_rule;
 }
 
 ostream & nts::operator<< ( ostream &o, const Transition &t )
 {
-	o << t._from << " -> " << t._to << " " << t._rule;
+	o << t._from << " -> " << t._to << " " << *t._rule;
 	return o;
 }
 
