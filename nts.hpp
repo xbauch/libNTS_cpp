@@ -191,6 +191,7 @@ class State
 
 		// Change parent only of no transition uses this state
 		void insert_to ( BasicNts &n );
+		void insert_after ( const State & s );
 		void remove_from_parent ();
 
 		const Transitions & incoming() const { return _incoming_tr; }

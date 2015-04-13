@@ -131,6 +131,17 @@ void State::insert_to ( BasicNts &n )
 	_pos = n._states.insert ( n._states.cend(), this );
 }
 
+void State::insert_after ( const State & s )
+{
+	if ( _parent )
+		throw std::logic_error ( "State already belongs to BasicNts" );
+
+	_parent = s._parent;
+	auto where = s._pos;
+	++where;
+	_pos = _parent->_states.insert ( where, this );
+}
+
 void State::remove_from_parent ()
 {
 	if ( !_parent )
