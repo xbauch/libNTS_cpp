@@ -347,26 +347,30 @@ class TransitionRule
 		friend std::ostream & operator<< ( std::ostream & o, const TransitionRule &);
 };
 
+class Term;
 class CallTransitionRule : public TransitionRule
 {
 	public:
+		using ArithList    = const std::initializer_list < Term * > &;
 		using VariableList = const std::initializer_list < const Variable * > &;
-		using Variables     = std::vector < const Variable * >;
+		using Variables    = std::vector < const Variable * >;
+		using Terms        = std::vector < Term * >;
 
 	private:
 		BasicNts & _dest;
-		Variables  _var_in;
+		Terms      _term_in;
 		Variables  _var_out;
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
 
 	public:
-		CallTransitionRule ( BasicNts & dest, VariableList in, VariableList out );
-		virtual ~CallTransitionRule() = default;
+		// Becomes an owner of all terms given in 'in :: ArithList'
+		CallTransitionRule ( BasicNts & dest, ArithList in, VariableList out );
+		virtual ~CallTransitionRule();
 
 		BasicNts & dest() const { return _dest; }
 
-		const Variables & variables_in()  const { return _var_in;  }
+		const Terms & variables_in()  const { return _term_in;  }
 		const Variables & variables_out() const { return _var_out; }
 };
 

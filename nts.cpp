@@ -617,7 +617,7 @@ ostream & FormulaTransitionRule::print ( std::ostream & o ) const
 CallTransitionRule::CallTransitionRule
 (
 		BasicNts   & dest,
-		VariableList in,
+		ArithList    in,
 		VariableList out
 ) :
 	TransitionRule ( Kind::Call ),
@@ -658,9 +658,18 @@ CallTransitionRule::CallTransitionRule
 		formal++;
 	}
 
-	_var_in.insert ( _var_in.cbegin(), in );
+	_term_in.insert ( _term_in.cbegin(), in );
 	_var_out.insert ( _var_out.cbegin(), out );
 
+}
+
+CallTransitionRule::~CallTransitionRule()
+{
+	while ( ! _term_in.empty() )
+	{
+		delete _term_in.back();
+		_term_in.pop_back();
+	}
 }
 
 namespace
@@ -691,8 +700,7 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 	}
 
 	o << _dest.name() << " ( ";
-	to_csv < decltype(_var_out)::const_iterator, print_variable_name >
-		( o, _var_in.cbegin(), _var_in.cend() );
+	to_csv ( o, _term_in.cbegin(), _term_in.cend(), ptr_print_function<Term>, ", " );
 	o << " ) }";
 
 	return o;

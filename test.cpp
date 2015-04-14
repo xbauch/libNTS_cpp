@@ -69,7 +69,10 @@ struct Example
 			s3->insert_to ( *basic );
 
 
-			ctr1 = new CallTransitionRule ( *n->basic, { var_1, var_2 }, { var_3 } );
+			ctr1 = new CallTransitionRule ( *n->basic, {
+					new VariableReference ( *var_1, false ),
+					new VariableReference ( *var_2, false ) },
+					{ var_3 } );
 			// Transition automatically belongs to BasicNts,
 			// which owns given states
 			new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );

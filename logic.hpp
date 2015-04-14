@@ -63,6 +63,7 @@ class Term
 		// type can be whatever type
 		Term ( bool minus, DataType type ); 
 		Term ( const Term & orig );
+		virtual ~Term() = default;
 
 		const DataType & type () const { return _type; }
 
@@ -321,7 +322,7 @@ class ArithmeticOperation : public Term
 
 		ArithmeticOperation ( const ArithmeticOperation & orig );
 		ArithmeticOperation ( ArithmeticOperation && old );
-		~ArithmeticOperation() = default;
+		virtual ~ArithmeticOperation() = default;
 
 		const ArithOp & operation() const;
 		const Term & term1() const;
@@ -360,6 +361,7 @@ class IntConstant : public Constant
 
 	public:
 		explicit IntConstant ( int value );
+		virtual ~IntConstant() = default;
 
 		virtual IntConstant * clone() const override;
 };
@@ -378,6 +380,7 @@ class UserConstant : public Constant
 		explicit UserConstant ( DataType type, std::string && value );
 		UserConstant ( const UserConstant & orig );
 		UserConstant ( UserConstant && old );
+		virtual ~UserConstant() = default;
 
 		virtual UserConstant * clone() const override;
 };
@@ -393,6 +396,7 @@ class VariableReference : public Leaf
 
 	public:
 		VariableReference ( const Variable &var, bool primed );
+		virtual ~VariableReference() = default;
 
 		bool primed() const { return _primed; }
 		const Variable & variable () const { return *_var; }
