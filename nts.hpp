@@ -131,6 +131,18 @@ class BasicNts
 		using States = std::list < State * >;
 		States _states;
 
+
+		void print_params_in  ( std::ostream & o ) const;
+		void print_params_out ( std::ostream & o ) const;
+		void print_variables  ( std::ostream & o ) const;
+
+		void print_states_basic   ( std::ostream & o ) const;
+		void print_states_initial ( std::ostream & o ) const;
+		void print_states_final   ( std::ostream & o ) const;
+		void print_states_error   ( std::ostream & o ) const;
+
+		void print_transitions ( std::ostream & o ) const;
+
 	public:
 		class Callers;
 		class Callees;
@@ -176,15 +188,28 @@ class State
 		Transitions _outgoing_tr;
 
 
+		bool _initial;
+		bool _final;
+		bool _error;
+
 	public:
 		State ( const std::string &  name );
 		State ( const std::string && name );
 		State ( const State &  st  ) = delete;
-		State ( const State && old );
+		State ( const State && old ) = delete;
 
 		~State() = default;
 
 		const std::string name() const { return _name; }
+
+		const bool & is_initial() const { return _initial; }
+		      bool & is_initial()       { return _initial; }
+		
+		const bool & is_final() const { return _final; }
+		      bool & is_final()       { return _final; }
+
+		const bool & is_error() const { return _error; }
+		      bool & is_error()       { return _error; }
 
 		bool operator== ( const State & s ) const;
 		bool operator!= ( const State & s ) const;

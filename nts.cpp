@@ -19,6 +19,7 @@ using std::find;
 using std::ostream;
 using std::distance;
 using std::unique_ptr;
+using std::function;
 
 //------------------------------------//
 // Nts                                //
@@ -115,22 +116,21 @@ ostream & nts::operator<< ( ostream &o , const Instance &i )
 //------------------------------------//
 
 State::State ( const std::string & name ) :
-	_parent ( nullptr ),
-	_name   ( name    )
+	_parent  ( nullptr ),
+	_name    ( name    ),
+	_initial ( false   ),
+	_final   ( false   ),
+	_error   ( false   )
 {
 	;
 }
 
 State::State ( const std::string && name ) :
-	_parent ( nullptr ),
-	_name   ( name    )
-{
-	;
-}
-
-
-State::State ( const State && old ) :
-	_name ( std::move ( old._name ) )
+	_parent  ( nullptr ),
+	_name    ( name    ),
+	_initial ( false   ),
+	_final   ( false   ),
+	_error   ( false   )
 {
 	;
 }
@@ -237,59 +237,142 @@ void BasicNts::remove_from_parent()
 	}
 }
 
-std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
+void BasicNts::print_params_in ( std::ostream & o ) const
 {
-	// Prints variable
-	auto var_pr = ptr_print_function < Variable >;
-	auto st_pr  = ptr_print_function < State >;
-
-	o << bn._name << " {\n";
-
-	if ( bn._params_in.size() > 0 )
+	if ( _params_in.size() > 0 )
 	{
 		o << "\tin\t";
-		to_csv( o, bn._params_in.cbegin(), bn._params_in.cend(), var_pr, ",\n\t\t" );
+
+		to_csv( o,
+				_params_in.cbegin(),
+				_params_in.cend(),
+				ptr_print_function < Variable >,
+				",\n\t\t" );
+
 		o << ";\n";
 	}
+}
 
-	if ( bn._params_out.size() > 0 )
+void BasicNts::print_params_out ( std::ostream & o ) const
+{
+	if ( _params_out.size() > 0 )
 	{
-		o << "\tout\t";
-		to_csv ( o, bn._params_out.cbegin(), bn._params_out.cend(), var_pr, ",\n\t\t" );
+		o << "\tout\t" ;
+		to_csv ( o,
+				_params_out.cbegin(),
+				_params_out.cend(),
+				ptr_print_function < Variable >,
+				",\n\t\t" );
 		o << ";\n";
 	}
+}
 
-	for ( auto v : bn._variables )
+void BasicNts::print_variables ( std::ostream & o ) const
+{
+	for ( auto v : _variables )
 	{
 		o << "\t" << *v << ";\n";
 	}
+}
 
-	auto filter_states = [] ( State *s ) -> bool
+template < typename InputIterator >
+void print_state_list (
+		ostream      & o,
+		InputIterator  begin,
+		InputIterator  end,
+		const string & prefix,
+		function < bool ( typename InputIterator::value_type ) > predicate
+)
+{
+	Filtered < InputIterator > fs ( begin, end, predicate );
+	auto b = fs.begin();
+	auto e = fs.end();
+
+	if ( distance ( b, e ) <= 0 )
+		return;
+	
+	o << prefix;
+	to_csv ( o, b, e, ptr_print_function < State >, ", " );
+	o << ";\n";
+}
+
+void BasicNts::print_states_basic ( std::ostream & o ) const
+{
+	auto p = [] ( State *s ) -> bool
 	{
+		// Later ( after annotations ) force annotated states to print
+
 		if ( s->outgoing().size() >= 1 )
 			return false;
 
 		if ( s->incoming().size() >= 1 )
 			return false;
 
+		if ( s->is_initial() )
+			return false;
+
+		if ( s->is_final() )
+			return false;
+
 		return true;
 	};
 
-	// All states without incoming / outgoing edges
-	Filtered < decltype ( bn._states)::const_iterator >
-		fs ( bn._states.cbegin(), bn._states.cend(), filter_states );
+	print_state_list ( o, _states.cbegin(), _states.cend(), "\tstates\t", p );
+}
 
-	if ( distance ( fs.begin(), fs.end() )  >= 1 )
+
+void BasicNts::print_states_initial ( std::ostream & o ) const
+{
+	auto p = [] ( const State * s )
 	{
-		o << "\tstates\t";
-		to_csv ( o, fs.begin(), fs.end(), st_pr, "\n\t\t" );
-		o << ";\n";
-	}
+		return s->is_initial();
+	};
 
-	for ( auto t : bn._transitions )
+	print_state_list ( o, _states.cbegin(), _states.cend(), "\tinitial\t", p );
+}
+
+void BasicNts::print_states_final ( std::ostream & o ) const
+{
+	auto p = [] ( const State * s )
+	{
+		return s->is_final();
+	};
+
+	print_state_list ( o, _states.cbegin(), _states.cend(), "\tfinal\t", p );
+}
+
+void BasicNts::print_states_error ( std::ostream & o ) const
+{
+	auto p = [] ( const State * s )
+	{
+		return s->is_error();
+	};
+
+	print_state_list ( o, _states.cbegin(), _states.cend(), "\terror\t", p );
+}
+
+void BasicNts::print_transitions ( std::ostream & o ) const
+{
+	for ( auto t : _transitions )
 	{
 		o << "\t" << *t << "\n";
 	}
+}
+
+std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
+{
+	o << bn._name << " {\n";
+
+	bn.print_params_in  ( o );
+	bn.print_params_out ( o );
+	bn.print_variables  ( o );
+
+	bn.print_states_basic   ( o );
+	bn.print_states_initial ( o );
+	bn.print_states_final   ( o );
+	bn.print_states_error   ( o );
+
+	bn.print_transitions ( o );
 
 	o << "}\n";
 
