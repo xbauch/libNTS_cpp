@@ -48,14 +48,25 @@ Nts::~Nts()
 ostream & nts::operator<< ( ostream & o , const Nts & nts )
 {
 	o << "nts " << nts._name << ";\n";
-	to_csv ( o, nts._vars.cbegin(), nts._vars.cend(),
-			ptr_print_function<Variable>, "\n" ) << "\n";
 
-	to_csv ( o, nts._instances.cbegin(), nts._instances.cend(),
-			ptr_print_function<Instance>, "\n" ) << "\n";
+	if ( nts._vars.size() > 0 )
+	{
+		to_csv ( o, nts._vars.cbegin(), nts._vars.cend(),
+				ptr_print_function<Variable>, "\n" ) << "\n";
+	}
 
-	to_csv ( o, nts._basics.cbegin(), nts._basics.cend(),
-			ptr_print_function<BasicNts>, "\n" ) << "\n";
+	if ( nts._instances.size() > 0 )
+	{
+		to_csv ( o, nts._instances.cbegin(), nts._instances.cend(),
+				ptr_print_function<Instance>, "\n" ) << "\n";
+	}
+
+	if ( nts._basics.size() > 0 )
+	{
+		to_csv ( o, nts._basics.cbegin(), nts._basics.cend(),
+				ptr_print_function<BasicNts>, "\n" ) << "\n";
+	}
+
 	return o;
 }
 
