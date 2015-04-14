@@ -351,8 +351,6 @@ class Term;
 class CallTransitionRule : public TransitionRule
 {
 	public:
-		using ArithList    = const std::initializer_list < Term * > &;
-		using VariableList = const std::initializer_list < const Variable * > &;
 		using Variables    = std::vector < const Variable * >;
 		using Terms        = std::vector < Term * >;
 
@@ -363,9 +361,19 @@ class CallTransitionRule : public TransitionRule
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
 
+		template < typename It_1, typename It_2 >
+		static bool coercible (
+				It_1 from_begin, It_1 from_end,
+				It_2 to_begin,   It_2 to_end    );
+
+		template < typename Cont_1, typename Cont_2 >
+		static bool coercible ( const Cont_1 & from, const Cont_2 & to );
+
 	public:
 		// Becomes an owner of all terms given in 'in :: ArithList'
-		CallTransitionRule ( BasicNts & dest, ArithList in, VariableList out );
+		CallTransitionRule ( BasicNts & dest, const Terms & in, const Variables &  out );
+		//CallTransitionRule ( BasicNts & dest, Terms && in, Variables && out );
+
 		virtual ~CallTransitionRule();
 
 		BasicNts & dest() const { return _dest; }

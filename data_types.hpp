@@ -53,6 +53,12 @@ namespace nts
 
 	DataType coerce ( const DataType & t1, const DataType & t2 );
 
+	/**
+	 * @brief Is 'from' coercible to 'to' ?
+	 */
+	bool coercible_ne ( const DataType & from, const DataType & to ) noexcept;
+	void coercible ( const DataType & from, const DataType & to );
+
 
 	class TypeError : public std::exception
 	{

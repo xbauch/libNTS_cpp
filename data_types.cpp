@@ -126,3 +126,27 @@ DataType nts::coerce ( const DataType & t1, const DataType & t2 )
 
 	throw TypeError();
 }
+
+bool nts::coercible_ne ( const DataType & from, const DataType & to ) noexcept
+{
+	if ( from == to )
+		return true;
+
+	/* 
+	 * If 'from :: Integral a => a' and
+	 * ( 'to :: BitVector' or 'to :: Integer' or 'to :: Integral' )
+	 */
+	if ( from == DataType::Integral() && to.is_integral() )
+		return true;
+
+	if ( from.is_bitvector() && to.is_bitvector() && from.bitwidth() <= to.bitwidth() )
+		return true;
+
+	return false;
+}
+
+void nts::coercible ( const DataType & from, const DataType & to )
+{
+	if ( ! coercible_ne ( from, to ) )
+		throw TypeError();
+}

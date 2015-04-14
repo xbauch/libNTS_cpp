@@ -9,6 +9,7 @@
 #include "logic.hpp"
 #include "to_csv.hpp"
 #include "FilterIterator.hpp"
+#include "TransformIterator.hpp"
 
 using namespace nts;
 using std::string;
@@ -20,6 +21,7 @@ using std::ostream;
 using std::distance;
 using std::unique_ptr;
 using std::function;
+using std::pair;
 
 //------------------------------------//
 // Nts                                //
@@ -614,53 +616,76 @@ ostream & FormulaTransitionRule::print ( std::ostream & o ) const
 // CallTransitionRule                 //
 //------------------------------------//
 
+// 
+template < typename It_1, typename It_2 >
+bool CallTransitionRule::coercible (
+				It_1 from_begin, It_1 from_end,
+				It_2 to_begin,   It_2 to_end    )
+{
+	auto from = from_begin;
+	auto to   = to_begin;
+	for ( ;	from != from_end && to != to_end; ++from, ++to )
+	{
+		if ( ! coercible_ne ( *from, *to ) )
+			return false;
+	}
+
+	if ( from != from_end || to != to_end )
+		return false;
+	
+	return true;
+}
+
+template < typename Cont_1, typename Cont_2 >
+bool CallTransitionRule::coercible ( const Cont_1 & from, const Cont_2 & to )
+{
+	return coercible
+	<
+		typename Cont_1::const_iterator,
+		typename Cont_2::const_iterator
+	> ( from.cbegin(), from.cend(), to.cbegin(), to.cend() );
+}
+
 CallTransitionRule::CallTransitionRule
 (
-		BasicNts   & dest,
-		ArithList    in,
-		VariableList out
+		BasicNts        & dest,
+		const Terms     & in,
+		const Variables & out
 ) :
 	TransitionRule ( Kind::Call ),
 	_dest          ( dest       )
 {
-	const auto & params_in  = dest.params_in();
-	const auto & params_out = dest.params_out();
+	const auto & par_in  = dest.params_in();
+	const auto & par_out = dest.params_out();
 
-	if ( in.size() != params_in.size() )
+	auto pterm_to_type = [] ( const Term *t ) -> const DataType &
+	{
+		return t->type();
+	};
+
+	auto pvar_to_type = [] ( const Variable * v ) -> const DataType &
+	{
+		return v->type();
+	};
+
+	auto caller_in  = Mapped < Terms    ::const_iterator, const DataType & >
+		( in .cbegin(), in .cend(), pterm_to_type );
+	auto caller_out = Mapped < Variables::const_iterator, const DataType & >
+		( out.cbegin(), out.cend(), pvar_to_type  );
+
+	auto callee_in  = Mapped < list<Variable *>::const_iterator, const DataType & >
+		( par_in .cbegin(), par_in .cend(), pvar_to_type );
+	auto callee_out = Mapped < list<Variable *>::const_iterator, const DataType & >
+		( par_out.cbegin(), par_out.cend(), pvar_to_type );
+
+	if ( ! coercible ( caller_in, callee_in ) )
 		throw TypeError();
 
-	if ( out.size() != params_out.size() )
+	if ( ! coercible ( callee_out, caller_out ) )
 		throw TypeError();
 
-	// Check type of input parameters
-	auto formal = params_in.cbegin();
-	for ( const auto i : in )
-	{
-		if ( formal == params_in.cend() )
-			throw TypeError();
-
-		if ( (*formal)->type() != i->type() )
-			throw TypeError();
-
-		formal++;
-	}
-
-	// Check type of output parameters
-	formal = params_out.cbegin();
-	for ( const auto i : out )
-	{
-		if ( formal == params_out.cend() )
-			throw TypeError();
-
-		if ( (*formal)->type() != i->type() )
-			throw TypeError();
-
-		formal++;
-	}
-
-	_term_in.insert ( _term_in.cbegin(), in );
-	_var_out.insert ( _var_out.cbegin(), out );
-
+	_term_in.insert ( _term_in.cbegin(), in.cbegin(), in.cend() );
+	_var_out.insert ( _var_out.cbegin(), out.cbegin(), out.cend() );
 }
 
 CallTransitionRule::~CallTransitionRule()
@@ -690,8 +715,7 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 		if ( _var_out.size() > 1 )
 			o << "( ";
 
-		to_csv < decltype(_var_out)::const_iterator, print_variable_name >
-			( o, _var_out.cbegin(), _var_out.cend() );
+		to_csv ( o, _var_out.cbegin(), _var_out.cend(), print_variable_name, "', " ) << "'";
 
 		if ( _var_out.size() > 1 )
 			o << " )";
