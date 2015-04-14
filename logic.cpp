@@ -464,34 +464,27 @@ void BooleanTerm::print ( std::ostream & o ) const
 // Relation                           //
 //------------------------------------//
 
-void Relation::check_type ( const DataType &t1, const DataType &t2 )
-{
-	if ( t1.is_bitvector() && t2.is_bitvector() )
-		return;
-
-	if ( t1 != t2 )
-		throw TypeError();
-}
-
 Relation::Relation ( RelationOp op, unique_ptr<Term> t1, unique_ptr<Term> t2 ) :
-	_op ( op )
+	_op   ( op ),
+	_type ( coerce ( t1->type(), t2->type() ) )
 {
-	check_type( t1->type(), t2->type() );
 	_t1 = move ( t1 );
 	_t2 = move ( t2 );
 }
 
 Relation::Relation ( const Relation & orig ) :
-	_op ( orig._op )
+	_op   ( orig._op   ),
+	_type ( orig._type )
 {
 	_t1 = unique_ptr<Term> ( orig._t1->clone() );
 	_t2 = unique_ptr<Term> ( orig._t2->clone() );
 }
 
 Relation::Relation ( Relation && old ) :
-	_op ( move ( old._op ) ),
-	_t1 ( move ( old._t1 ) ),
-	_t2 ( move ( old._t2 ) )
+	_op   ( move ( old._op   ) ),
+	_t1   ( move ( old._t1   ) ),
+	_t2   ( move ( old._t2   ) ),
+	_type ( move ( old._type ) )
 {
 	;
 }
@@ -513,7 +506,7 @@ void Relation::print ( std::ostream & o ) const
 ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 				unique_ptr < Term > t1,
 				unique_ptr < Term > t2 ) :
-	Term ( false, calc_type ( t1.get(), t2.get() ) ),
+	Term ( false, coerce ( t1->type(), t2->type() ) ),
 	_op ( op ),
 	_t1 ( move ( t1 ) ),
 	_t2 ( move ( t2 ) )
@@ -536,34 +529,6 @@ ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
 	_t2  ( std::move ( old._t2 ) )
 {
 	;
-}
-
-DataType ArithmeticOperation::calc_type ( const Term * term1, const Term *term2 )
-{
-	const DataType &t1 = term1->type();
-	const DataType &t2 = term2->type();
-
-	// Same types
-	if ( t1 == t2 )
-		return t1;
-
-	// t1 can be whatever type of class Integral (probably constant)
-	// t2 is some concrete type of class Integral,
-	// or whatever type of class Integral
-	if ( t1 == DataType::Integral() && t2.is_integral() )
-		return t2;
-
-	// Commutatively
-	if ( t2 == DataType::Integral() && t1.is_integral() )
-		return t1;
-
-	// Both are BitVectors, but have different size (because t1 != t2)
-	if ( t1.is_bitvector() && t2.is_bitvector() )
-	{
-		return DataType::BitVector ( std::max( t1.bitwidth(), t2.bitwidth() ) );
-	}
-
-	throw TypeError();
 }
 
 const ArithOp & ArithmeticOperation::operation() const

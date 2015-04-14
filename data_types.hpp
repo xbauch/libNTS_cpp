@@ -45,6 +45,15 @@ namespace nts
 
 	};
 
+	/**
+	 * @brief Find some type t such that t1 and t2 can be coerced to t.
+	 * @return true if t was found. t is then stored in result.
+	 */
+	bool coerce ( const DataType & t1, const DataType & t2, DataType & result ) noexcept;
+
+	DataType coerce ( const DataType & t1, const DataType & t2 );
+
+
 	class TypeError : public std::exception
 	{
 		public:

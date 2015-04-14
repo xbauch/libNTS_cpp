@@ -79,3 +79,50 @@ void DataType::print ( std::ostream &o ) const
 			throw TypeError();
 	}
 }
+
+bool nts::coerce ( const DataType & t1, const DataType & t2, DataType & result ) noexcept
+{
+	// Same types
+	if ( t1 == t2 )
+	{
+		result = t1;
+		return true;
+	}
+
+	// t1 can be whatever type of class Integral (probably constant)
+	// t2 is some concrete type of class Integral,
+	// or whatever type of class Integral
+	if ( t1 == DataType::Integral() && t2.is_integral() )
+	{
+		result = t2;
+		return true;
+	}
+
+	// Commutatively
+	if ( t2 == DataType::Integral() && t1.is_integral() )
+	{
+		result = t1;
+		return true;
+	}
+
+	// Both are BitVectors, but have different size (because t1 != t2)
+	if ( t1.is_bitvector() && t2.is_bitvector() )
+	{
+		result = DataType::BitVector ( std::max ( t1.bitwidth(), t2.bitwidth() ) );
+		return true;
+	}
+
+	return false;
+}
+
+DataType nts::coerce ( const DataType & t1, const DataType & t2 )
+{
+	// DataType does not have zero parameter constructor
+	// (and imho DataType should not have it)
+	DataType t = DataType::Integer();
+
+	if ( coerce ( t1, t2, t ) )
+		return t;
+
+	throw TypeError();
+}

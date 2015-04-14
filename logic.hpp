@@ -273,11 +273,11 @@ class BooleanTerm : public AtomicProposition
 class Relation : public AtomicProposition
 {
 	private:
-		RelationOp   _op;
+		RelationOp            _op;
 		std::unique_ptr<Term> _t1;
 		std::unique_ptr<Term> _t2;
-
-		static void check_type ( const DataType &t1, const DataType &t2 );
+		// Both _t1 and _t2 are coerced to _type
+		DataType              _type;
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -295,6 +295,8 @@ class Relation : public AtomicProposition
 		const Term & term1() const { return *_t1; }
 		const Term & term2() const { return *_t2; }
 
+		const DataType & type() const { return _type; }
+
 		virtual Relation * clone() const override;
 };
 
@@ -307,8 +309,6 @@ class ArithmeticOperation : public Term
 		ArithOp _op;
 		p_Term  _t1;
 		p_Term  _t2;
-
-		static DataType calc_type ( const Term *t1, const Term *t2 );
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -382,7 +382,6 @@ class UserConstant : public Constant
 		virtual UserConstant * clone() const override;
 };
 
-// TODO
 class VariableReference : public Leaf
 {
 	private:
