@@ -291,8 +291,9 @@ class Transition
 
 	private:
 
-		BasicNts & _parent;
+		BasicNts * _parent;
 		Transitions::iterator _pos;
+
 		std::unique_ptr < TransitionRule > _rule;
 
 		State & _from;
@@ -315,6 +316,10 @@ class Transition
 		const TransitionRule & rule() const { return *_rule; }
 		const State & from() const { return _from; }
 		const State & to() const { return _to; }
+
+		const BasicNts * parent() const { return _parent; }
+		void insert_to ( BasicNts & bn );
+		void remove_from_parent ();
 
 		friend std::ostream & operator<< ( std::ostream & o, const Transition & );
 };

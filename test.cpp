@@ -47,7 +47,7 @@ struct Example
 		BitVectorVariable *var_3;
 
 		TransitionRule *ctr1;
-		Transition *t1;
+		//Transition *t1;
 
 		Nts1 ( struct Nts2 *n )
 		{
@@ -73,9 +73,9 @@ struct Example
 					new VariableReference ( *var_1, false ),
 					new VariableReference ( *var_2, false ) },
 					{ var_3 } );
-			// Transition automatically belongs to BasicNts,
-			// which owns given states
-			new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
+			auto t = new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
+			t->insert_to ( *basic );
+
 		}
 		~Nts1()
 		{
@@ -143,22 +143,27 @@ struct Example_callees_callers
 		unique_ptr < TransitionRule > rule;
 		rule = unique_ptr < TransitionRule > ( new CallTransitionRule ( *nb[1], {}, {} ) );
 		tr.push_back ( new Transition ( move ( rule ), *s1, *s2 ) );
+		tr.back()->insert_to ( *nb[0] );
 
 		// tr[1] - call transition
 		rule = unique_ptr < TransitionRule > ( new CallTransitionRule ( *nb[1], {}, {} ) );
 		tr.push_back ( new Transition ( move ( rule ), *s1, *s3 ) );
+		tr.back()->insert_to ( *nb[0] );
 
 		// tr[2] - formula transition
 		rule = unique_ptr < TransitionRule > (
 				new FormulaTransitionRule (
 					unique_ptr<Formula> ( bf ) ) );
 		tr.push_back ( new Transition ( move ( rule ), *s1, *s4 ) );
+		tr.back()->insert_to ( *nb[0] );
 
 		// tr[3] - formula transition
 		rule = unique_ptr < TransitionRule > (
 				new FormulaTransitionRule (
 					unique_ptr<Formula> ( bf->clone() ) ) );
 		tr.push_back ( new Transition ( move ( rule ), *s2, *s3 ) );
+		tr.back()->insert_to ( *nb[0] );
+
 
 		// After this block toplevel_nts owns all BasicNtses
 		nb[0]->insert_to ( toplevel_nts );

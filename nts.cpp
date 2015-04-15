@@ -552,23 +552,15 @@ bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
 //------------------------------------//
 
 Transition::Transition ( unique_ptr<TransitionRule> rule, State &s1, State &s2 ) :
-	_parent ( *s1._parent   ),
-	_from   ( s1            ),
-	_to     ( s2            )
+	_parent ( nullptr ),
+	_from   ( s1      ),
+	_to     ( s2      )
 {
-	if ( !s1._parent || !s2._parent )
-		throw std::logic_error ( "Transition states must have parents" );
-
-	if ( s1._parent != s2._parent )
-		throw std::logic_error ( "Transition states must have the same parents" );
-
 	_rule = move ( rule );
 	_rule->_t = this;
 
 	_st_from_pos = _from._outgoing_tr.insert ( _from._outgoing_tr.cend(), this );
 	_st_to_pos   = _to._incoming_tr.insert ( _to._incoming_tr.cend(), this );
-
-	_pos = _parent._transitions.insert ( _parent._transitions.end(), this );
 }
 
 Transition::~Transition()
@@ -576,7 +568,32 @@ Transition::~Transition()
 	_from._outgoing_tr.erase ( _st_from_pos );
 	_to._incoming_tr.erase ( _st_to_pos );
 
-	_parent._transitions.erase ( _pos );
+	if ( _parent )
+	{
+		_parent->_transitions.erase ( _pos );
+		_parent = nullptr;
+	}
+}
+
+void Transition::insert_to ( BasicNts & bn )
+{
+	if ( _parent )
+		throw std::logic_error ( "Transition already has a parent" );
+
+	if ( ( & bn != _from._parent ) || ( & bn != _to._parent ) )
+		throw std::logic_error ( "States must belong to given BasicNts" );
+
+	_parent = & bn;
+	_pos    = _parent->_transitions.insert ( _parent->_transitions.cend(), this );
+}
+
+void Transition::remove_from_parent ()
+{
+	if ( ! _parent )
+		throw std::logic_error ( "Transition does not have a parent" );
+
+	_parent->_transitions.erase ( _pos );
+	_parent = nullptr;
 }
 
 ostream & nts::operator<< ( ostream &o, const Transition &t )
