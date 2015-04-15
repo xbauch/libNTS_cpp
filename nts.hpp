@@ -37,6 +37,7 @@ namespace nts
 class BasicNts;
 class Instance;
 class Variable;
+class Formula;
 
 class Nts
 {
@@ -52,6 +53,8 @@ class Nts
 		// Global variables
 		std::list <Variable *> _vars;
 		friend class Variable;
+
+		std::unique_ptr < Formula > _init;
 
 	public:
 		explicit Nts ( const std::string & name );
@@ -69,6 +72,10 @@ class Nts
 		}
 
 		const std::string & name() const { return _name; }
+
+		std::unique_ptr < Formula > & init() { return _init; }
+		std::unique_ptr < Formula > const & init() const { return _init; }
+
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
@@ -387,7 +394,6 @@ class CallTransitionRule : public TransitionRule
 		const Variables & variables_out() const { return _var_out; }
 };
 
-class Formula;
 class FormulaTransitionRule : public TransitionRule
 {
 	private:

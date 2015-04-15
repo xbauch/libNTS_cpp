@@ -28,7 +28,8 @@ using std::pair;
 //------------------------------------//
 
 Nts::Nts ( const string & name ) :
-	_name ( name )
+	_name ( name    ),
+	_init ( nullptr )
 {
 	;
 }
@@ -56,6 +57,11 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 	{
 		to_csv ( o, nts._vars.cbegin(), nts._vars.cend(),
 				ptr_print_function<Variable>, "\n" ) << "\n";
+	}
+
+	if ( nts._init )
+	{
+		o << "init\t" << *nts._init << ";\n";
 	}
 
 	if ( nts._instances.size() > 0 )
