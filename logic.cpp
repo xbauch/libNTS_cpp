@@ -444,6 +444,12 @@ void QuantifiedFormula::print ( ostream & o ) const
 // Havoc                              //
 //------------------------------------//
 
+Havoc::Havoc () :
+	_vars ( { } )
+{
+	;
+}
+
 Havoc::Havoc ( const std::initializer_list < const Variable *> & vars ) :
 	_vars ( vars )
 {

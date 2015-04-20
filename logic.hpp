@@ -244,6 +244,7 @@ class Havoc : public AtomicProposition
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
+		Havoc ();
 		explicit Havoc ( const std::initializer_list < const Variable * > & list );
 		Havoc ( const Havoc & orig );
 		Havoc ( Havoc && old );
