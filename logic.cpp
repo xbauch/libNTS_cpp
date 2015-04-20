@@ -788,6 +788,26 @@ ArrayTerm * ArrayTerm::clone() const
 }
 
 //------------------------------------//
+// ThreadID                           //
+//------------------------------------//
+ThreadID::ThreadID() :
+	Constant ( DataType ( ScalarType::Integral() ) )
+{
+	;
+}
+
+ThreadID * ThreadID::clone() const
+{
+	return new ThreadID();
+}
+
+void ThreadID::print ( ostream & o ) const
+{
+	o << "tid";
+}
+
+
+//------------------------------------//
 // IntConstant                        //
 //------------------------------------//
 

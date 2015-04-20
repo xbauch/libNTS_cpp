@@ -425,6 +425,18 @@ class Constant : public Leaf
 		virtual Constant * clone() const override = 0;
 };
 
+class ThreadID : public Constant
+{
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		ThreadID();
+		~ThreadID() = default;
+
+		virtual ThreadID * clone() const override;
+};
+
 class IntConstant : public Constant
 {
 	private:
