@@ -12,6 +12,7 @@
 #include "TransformIterator.hpp"
 
 using namespace nts;
+using std::move;
 using std::string;
 using std::list;
 using std::to_string;
@@ -758,9 +759,9 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 //------------------------------------//
 
 Variable::Variable ( DataType t, const std::string & name ) :
-	_type        ( t       ),
-	_name        ( name    ),
-	_parent_list ( nullptr )
+	_type        ( move ( t ) ),
+	_name        ( name       ),
+	_parent_list ( nullptr    )
 {
 
 }
@@ -840,8 +841,10 @@ Variable * Variable::clone() const
 
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )
 {
-	o << v._name << " : ";
-	v._type.print ( o );
+	o << v._name;
+	v._type.print_arr ( o );
+	o <<  " : ";
+	v._type.scalar_type().print ( o );
 	return o;
 }
 
@@ -850,7 +853,7 @@ ostream & nts::operator<< ( std::ostream & o, const Variable &v )
 //------------------------------------//
 
 BitVectorVariable::BitVectorVariable ( const std::string &name, unsigned int width ) :
-	Variable ( DataType::BitVector(width), name )
+	Variable ( DataType ( ScalarType::BitVector(width) ), name )
 {
 	;
 }

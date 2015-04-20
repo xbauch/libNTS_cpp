@@ -151,6 +151,7 @@ class QuantifiedType
 		
 	public:
 		QuantifiedType ( DataType t );
+		QuantifiedType ( DataType && t );
 		QuantifiedType ( DataType t,
 				std::unique_ptr<Term> from,
 				std::unique_ptr<Term> to );
@@ -335,7 +336,7 @@ class Leaf : public Term
 {
 	public:
 		Leaf ( DataType type ) :
-			Term ( false, type )
+			Term ( false, std::move ( type ) )
 		{ ; }
 
 		virtual Leaf * clone() const override = 0;
@@ -345,7 +346,7 @@ class Constant : public Leaf
 {
 	public:
 		explicit Constant ( DataType type ) :
-			Leaf ( type )
+			Leaf ( std::move ( type ) )
 		{ ; }
 
 		virtual Constant * clone() const override = 0;

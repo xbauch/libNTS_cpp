@@ -76,6 +76,18 @@ struct Example
 			auto t = new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
 			t->insert_to ( *basic );
 
+			// Array variable
+			Variable * arr = new Variable (
+					DataType (
+						ScalarType::Integer(),
+						3,
+						{ new IntConstant ( 5 ) }
+					),
+					"my_array"
+			);
+
+			arr->insert_to ( *basic );
+
 		}
 		~Nts1()
 		{

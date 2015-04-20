@@ -1,60 +1,73 @@
+#include <utility>
+#include "logic.hpp"
 #include "data_types.hpp"
 
-using namespace nts;
+using std::move;
+using std::vector;
 
-DataType::DataType ( Type t, unsigned int bw) :
+namespace nts
+{
+
+ScalarType::ScalarType ( Type t, unsigned int bw) :
 	_type ( t ),
 	_bitwidth ( bw )
 {
 	;
 }
 
-DataType DataType::Integer()
+ScalarType::ScalarType ( ) :
+	_type     ( Type::None ),
+	_bitwidth ( 0 )
 {
-	return DataType ( Type::Integer, 0 );
+	;
 }
 
-DataType DataType::Real()
+ScalarType ScalarType::Integer()
 {
-	return DataType ( Type::Real, 0 );
+	return ScalarType ( Type::Integer, 0 );
 }
 
-DataType DataType::Integral()
+ScalarType ScalarType::Real()
 {
-	return DataType ( Type::Integral, 0 );
+	return ScalarType ( Type::Real, 0 );
 }
 
-DataType DataType::BitVector ( unsigned int bw )
+ScalarType ScalarType::Integral()
 {
-	return DataType ( Type::BitVector, bw );
+	return ScalarType ( Type::Integral, 0 );
 }
 
-DataType DataType::Bool ()
+ScalarType ScalarType::BitVector ( unsigned int bw )
+{
+	return ScalarType ( Type::BitVector, bw );
+}
+
+ScalarType ScalarType::Bool ()
 {
 	return BitVector ( 1 );
 }
 
-bool DataType::is_integral() const
+bool ScalarType::is_integral() const
 {
 	return _type != Type::Real;
 }
 
-bool DataType::is_bitvector() const
+bool ScalarType::is_bitvector() const
 {
 	return _type == Type::BitVector;
 }
 
-bool DataType::operator== ( const DataType & rhs ) const
+bool ScalarType::operator== ( const ScalarType & rhs ) const
 {
 	return _type == rhs._type && _bitwidth == rhs._bitwidth;
 }
 
-bool DataType::operator!= ( const DataType & rhs ) const
+bool ScalarType::operator!= ( const ScalarType & rhs ) const
 {
 	return ! (*this == rhs);
 }
 
-void DataType::print ( std::ostream &o ) const
+void ScalarType::print ( std::ostream &o ) const
 {
 	switch ( _type )
 	{
@@ -80,7 +93,7 @@ void DataType::print ( std::ostream &o ) const
 	}
 }
 
-bool nts::coerce ( const DataType & t1, const DataType & t2, DataType & result ) noexcept
+bool coerce ( const ScalarType & t1, const ScalarType & t2, ScalarType & result ) noexcept
 {
 	// Same types
 	if ( t1 == t2 )
@@ -92,14 +105,14 @@ bool nts::coerce ( const DataType & t1, const DataType & t2, DataType & result )
 	// t1 can be whatever type of class Integral (probably constant)
 	// t2 is some concrete type of class Integral,
 	// or whatever type of class Integral
-	if ( t1 == DataType::Integral() && t2.is_integral() )
+	if ( t1 == ScalarType::Integral() && t2.is_integral() )
 	{
 		result = t2;
 		return true;
 	}
 
 	// Commutatively
-	if ( t2 == DataType::Integral() && t1.is_integral() )
+	if ( t2 == ScalarType::Integral() && t1.is_integral() )
 	{
 		result = t1;
 		return true;
@@ -108,18 +121,18 @@ bool nts::coerce ( const DataType & t1, const DataType & t2, DataType & result )
 	// Both are BitVectors, but have different size (because t1 != t2)
 	if ( t1.is_bitvector() && t2.is_bitvector() )
 	{
-		result = DataType::BitVector ( std::max ( t1.bitwidth(), t2.bitwidth() ) );
+		result = ScalarType::BitVector ( std::max ( t1.bitwidth(), t2.bitwidth() ) );
 		return true;
 	}
 
 	return false;
 }
 
-DataType nts::coerce ( const DataType & t1, const DataType & t2 )
+ScalarType coerce ( const ScalarType & t1, const ScalarType & t2 )
 {
-	// DataType does not have zero parameter constructor
-	// (and imho DataType should not have it)
-	DataType t = DataType::Integer();
+	// ScalarType does not have zero parameter constructor
+	// (and imho ScalarType should not have it)
+	ScalarType t = ScalarType::Integer();
 
 	if ( coerce ( t1, t2, t ) )
 		return t;
@@ -127,7 +140,7 @@ DataType nts::coerce ( const DataType & t1, const DataType & t2 )
 	throw TypeError();
 }
 
-bool nts::coercible_ne ( const DataType & from, const DataType & to ) noexcept
+bool coercible_ne ( const ScalarType & from, const ScalarType & to ) noexcept
 {
 	if ( from == to )
 		return true;
@@ -136,7 +149,7 @@ bool nts::coercible_ne ( const DataType & from, const DataType & to ) noexcept
 	 * If 'from :: Integral a => a' and
 	 * ( 'to :: BitVector' or 'to :: Integer' or 'to :: Integral' )
 	 */
-	if ( from == DataType::Integral() && to.is_integral() )
+	if ( from == ScalarType::Integral() && to.is_integral() )
 		return true;
 
 	if ( from.is_bitvector() && to.is_bitvector() && from.bitwidth() <= to.bitwidth() )
@@ -145,8 +158,153 @@ bool nts::coercible_ne ( const DataType & from, const DataType & to ) noexcept
 	return false;
 }
 
-void nts::coercible ( const DataType & from, const DataType & to )
+void coercible ( const ScalarType & from, const ScalarType & to )
 {
 	if ( ! coercible_ne ( from, to ) )
 		throw TypeError();
 }
+
+DataType::DataType () :
+	_type ( ScalarType() ),
+	_dim_ref ( 0 ),
+	_arr_size ( {} )
+{
+	;
+}
+
+DataType::DataType ( ScalarType t,
+		unsigned int dim_ref,
+		vector < Term * > && arr_size ) :
+	_type ( t ),
+	_dim_ref ( dim_ref ),
+	_arr_size ( arr_size )
+{
+
+}
+
+DataType::DataType ( const DataType & orig ) :
+	_type    ( orig._type    ),
+	_dim_ref ( orig._dim_ref )
+{
+	for ( const Term * t : orig._arr_size )
+	{
+		_arr_size.push_back ( t->clone() );
+	}
+}
+
+DataType::DataType ( DataType && old ) :
+	_type     ( move ( old._type     ) ),
+	_dim_ref  ( move ( old._dim_ref  ) ),
+	_arr_size ( move ( old._arr_size ) )
+{
+	;
+}
+
+DataType::~DataType ()
+{
+	for ( Term *t : _arr_size )
+	{
+		delete t;
+	}
+}
+
+DataType & DataType::operator= ( const DataType  & orig )
+{
+	// Delete old content
+	for ( Term * t : _arr_size )
+	{
+		delete t;
+	}
+
+	_type = orig._type;
+	_dim_ref = orig._dim_ref;
+	for ( const Term * t : orig._arr_size )
+	{
+		_arr_size.push_back ( t->clone() );
+	}
+
+	return *this;
+}
+
+DataType & DataType::operator= ( DataType && old )
+{
+	// Delete old content
+	for ( Term * t : _arr_size )
+	{
+		delete t;
+	}
+
+	_arr_size = move ( old._arr_size );
+	_type     = old._type;
+	_dim_ref  = old._dim_ref;
+
+	return *this;
+}
+
+bool DataType::operator== ( const DataType & t ) const
+{
+	if ( _arr_size.size() > 0 || t._arr_size.size() > 0 )
+		return false;
+
+	return ( _type == t._type ) && ( _dim_ref == t._dim_ref ) ;
+}
+
+bool DataType::operator!= ( const DataType & t ) const
+{
+	return ! this->operator== ( t );
+}
+
+bool DataType::is_scalar() const noexcept
+{
+	return ( _arr_size.size() == 0 ) && ( _dim_ref == 0 );
+}
+
+void DataType::print_arr ( std::ostream & o ) const
+{
+	for ( const Term * t : _arr_size )
+	{
+		o << "[" << *t << "]";
+	}
+
+	for ( unsigned int i = 0; i < _dim_ref; i++ )
+	{
+		o << "[]";
+	}
+}
+
+bool coerce ( const DataType & t1, const DataType & t2, DataType & result ) noexcept
+{
+	if ( !t1.is_scalar() || !t2.is_scalar() )
+		return false;
+
+	ScalarType st;
+	if ( ! coerce ( t1.scalar_type(), t2.scalar_type(), st ) )
+		return false;
+
+	result = DataType ( st );
+	return true;
+}
+
+DataType coerce ( const DataType & t1, const DataType & t2 )
+{
+	DataType t;
+	if ( ! coerce ( t1, t2, t ) )
+		throw TypeError();
+
+	return t;
+}
+
+bool coercible_ne ( const DataType & from, const DataType & to ) noexcept
+{
+	if ( !from.is_scalar() || !to.is_scalar() )
+		return false;
+	return true;
+}
+
+void coercible ( const DataType & from, const DataType & to )
+{
+	if ( ! coercible_ne ( from, to ) )
+		throw TypeError();
+}
+
+} // namespace nts

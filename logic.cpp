@@ -103,8 +103,8 @@ const char * to_str ( Quantifier q  )
 //------------------------------------//
 
 Term::Term ( bool minus, DataType t ) :
-	_minus ( minus ),
-	_type  ( t     )
+	_minus ( minus      ),
+	_type  ( move ( t ) )
 {
 	;
 }
@@ -219,22 +219,29 @@ void FormulaNot::print ( ostream & o ) const
 //------------------------------------//
 
 QuantifiedType::QuantifiedType ( DataType t ) :
-	_t    ( t ),
-	_from ( nullptr ),
-	_to   ( nullptr )
+	_from ( nullptr    ),
+	_to   ( nullptr    )
 {
-	;
+	// quantification is supported only over scalar types
+	if ( ! t.is_scalar() )
+		throw TypeError(); 
+	_t = move ( t );
 }
 
 QuantifiedType::QuantifiedType ( DataType t,
 		unique_ptr<Term> from,
-		unique_ptr<Term> to  ) :
-	_t    ( t                  ),
-	_from ( move ( from ) ),
-	_to   ( move ( to   ) )
+		unique_ptr<Term> to  )
 {
-	if ( from->type() != t || to->type() != t )
+	if ( ! t.is_scalar() )
 		throw TypeError();
+
+	if ( from->type() != _t || to->type() != _t )
+		throw TypeError();
+
+	_t    = move ( t    );
+	_from = move ( from );
+	_to   = move ( to   );
+
 }
 
 QuantifiedType::QuantifiedType ( const QuantifiedType & orig ) :
@@ -258,7 +265,8 @@ QuantifiedType::QuantifiedType ( QuantifiedType && old ) :
 
 ostream & nts::operator<< ( ostream & o, const QuantifiedType & qt )
 {
-	qt._t.print ( o );
+	// we have only scalar types
+	qt._t.scalar_type().print ( o );
 	if ( qt._from )
 	{
 		o << "[" << *qt._from << ", " << *qt._to << "]";
@@ -434,7 +442,9 @@ void Havoc::print ( ostream & o ) const
 
 BooleanTerm::BooleanTerm ( unique_ptr<Term> t )
 {
-	if ( t->type() != DataType::Bool() )
+	if ( !t->type().is_scalar() )
+		throw TypeError();
+	if ( t->type().scalar_type() != ScalarType::Bool() )
 		throw TypeError();
 
 	_t = move(t);
@@ -561,7 +571,7 @@ void ArithmeticOperation::print ( ostream & o ) const
 //------------------------------------//
 
 IntConstant::IntConstant ( int value ) :
-	Constant ( DataType::Integral() ),
+	Constant ( DataType ( ScalarType::Integral() ) ),
 	_value   ( value )
 {
 	;
@@ -582,15 +592,15 @@ void IntConstant::print ( ostream & o ) const
 //------------------------------------//
 
 UserConstant::UserConstant ( DataType type, string & value ) :
-	Constant ( type  ),
-	_value   ( value )
+	Constant ( move ( type ) ),
+	_value   ( value         )
 {
 	;
 }
 
 UserConstant::UserConstant ( DataType type, string && value ) :
-	Constant ( type  ),
-	_value   ( value )
+	Constant ( move ( type ) ),
+	_value   ( value         )
 {
 	;
 }
@@ -604,7 +614,7 @@ UserConstant::UserConstant ( const UserConstant & orig ) :
 }
 
 UserConstant::UserConstant ( UserConstant && old ) :
-	Constant ( old.type()          ),
+	Constant ( move ( old.type() ) ),
 	_value   ( move ( old._value ) )
 {
 	;
