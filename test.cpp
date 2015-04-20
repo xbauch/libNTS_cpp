@@ -86,7 +86,54 @@ struct Example
 					"my_array"
 			);
 
+
 			arr->insert_to ( *basic );
+
+			VariableReference * aref = new VariableReference ( *arr, false );
+			std::vector < Term * > idx_terms_1;
+			std::vector < Term * > idx_terms_2;
+
+			int i = 0;
+			for ( ; i < 2; i++ )
+			{
+				idx_terms_1.push_back ( new IntConstant ( 2 + i ) );
+			}
+
+			for ( ; i < 4; i++ )
+			{
+				idx_terms_2.push_back ( new IntConstant ( 3 + i ) );
+			}
+
+			ArrayTerm *at_1 = new ArrayTerm (
+					unique_ptr < VariableReference > ( aref ),
+					move ( idx_terms_1 )
+			);
+
+			ArrayTerm * at_2 = new ArrayTerm (
+					unique_ptr < Term > ( at_1 ),
+					move ( idx_terms_2 )
+			);
+	
+			Relation * r = new Relation (
+					RelationOp::gt,
+					unique_ptr < Term > ( at_2 ),
+					unique_ptr < IntConstant> ( new IntConstant ( 9 ) )
+			);
+
+			Transition * tra = new Transition (
+					unique_ptr < FormulaTransitionRule > (
+						new FormulaTransitionRule ( 
+							unique_ptr < Formula > ( r )
+						)
+					),
+					*s1,
+					*s2
+			);
+
+			tra->insert_to ( *basic );
+
+
+		
 
 		}
 		~Nts1()

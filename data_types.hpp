@@ -51,7 +51,7 @@ namespace nts
 
 	/*
 	 * Each type is an n-dimensional array
-	 * of k-dimensional array reference
+	 * (of references to k-dimensional array)
 	 * of some scalar type t.
 	 *
 	 * Comparision of array types ( i.e. types with n > 0)
@@ -93,6 +93,11 @@ namespace nts
 			//  ^^^^^^^^
 			//     \-this part of declaration
 			void print_arr ( std::ostream & o ) const;
+
+			unsigned int arr_dimension() const { return _arr_size.size(); }
+			unsigned int ref_dimension() const { return _dim_ref; }
+
+			const std::vector < Term * > & idx_terms() const { return _arr_size; }
 
 	};
 

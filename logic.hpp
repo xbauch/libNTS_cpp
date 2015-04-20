@@ -57,6 +57,7 @@ class Term
 		DataType _type;
 
 	protected:
+		using p_Term = std::unique_ptr < Term >;
 		virtual void print ( std::ostream & o ) const = 0;
 
 	public:
@@ -306,7 +307,6 @@ class Relation : public AtomicProposition
 class ArithmeticOperation : public Term
 {
 	private:
-		using p_Term = std::unique_ptr < Term >;
 
 		ArithOp _op;
 		p_Term  _t1;
@@ -331,6 +331,48 @@ class ArithmeticOperation : public Term
 
 		virtual ArithmeticOperation * clone() const override;
 };
+
+class ArrayTerm : public Term
+{
+	private:
+		p_Term _array;
+		std::vector < Term * > _indices;
+
+		// Type after application of 'n' indices
+		static DataType after ( const DataType & a_type, unsigned int n );
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		ArrayTerm ( p_Term arr, std::vector < Term * > indices );
+		ArrayTerm ( const ArrayTerm & orig );
+		ArrayTerm ( ArrayTerm && old );
+
+		virtual ~ArrayTerm();
+
+		virtual ArrayTerm * clone() const override;
+};
+
+#if 0
+class ArraySize : public Term
+{
+	private:
+		p_Term _array;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		explicit ArraySize ( p_Term arr );
+		ArraySize ( const ArraySize & orig );
+		ArraySize ( ArraySize && old );
+
+		virtual ~ArraySize() = default;
+
+		virtual ArraySize * clone() const override;
+};
+#endif
 
 class Leaf : public Term
 {

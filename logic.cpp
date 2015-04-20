@@ -10,6 +10,7 @@ using std::unique_ptr;
 using std::move;
 using std::ostream;
 using std::string;
+using std::vector;
 
 const char * to_str ( BoolOp op )
 {
@@ -564,6 +565,80 @@ ArithmeticOperation * ArithmeticOperation::clone() const
 void ArithmeticOperation::print ( ostream & o ) const
 {
 	o << "( " << *_t1 << " " << to_str ( _op ) << " " << *_t2 << " )";
+}
+
+
+//------------------------------------//
+// ArrayTerm                          //
+//------------------------------------//
+
+DataType ArrayTerm::after ( const DataType & a_type, unsigned int n )
+{
+	unsigned int tot = a_type.arr_dimension() + a_type.ref_dimension();
+
+	if ( tot < n )
+		throw TypeError();
+
+	unsigned int arr;
+	unsigned int ref;
+	if ( a_type.arr_dimension() >= n )
+	{
+		arr = a_type.arr_dimension() - n;
+		ref = a_type.ref_dimension();
+	} else {
+		arr = 0;
+		ref = tot - n;
+	}
+
+	std::vector < Term * > index_terms;
+	index_terms.reserve ( arr );
+	for ( unsigned int i = 0; i < arr; i++ )
+	{
+		index_terms.push_back ( a_type.idx_terms()[ n + i ]->clone() ); 
+	}
+
+	return DataType ( a_type.scalar_type(), ref, move ( index_terms ) );
+}
+
+ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
+	Term ( false, after ( arr->type(), indices.size() ) )	
+{
+	_array = move ( arr );
+	_indices = move ( indices );
+}
+
+ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
+	Term ( false, orig.type() )
+{
+	_array = unique_ptr < Term > (orig._array->clone() );
+	_indices.resize ( orig._indices.size() );
+	for ( const Term *t : orig._indices )
+	{
+		_indices.push_back ( t->clone() );
+	}
+}
+
+
+ArrayTerm::~ArrayTerm()
+{
+	for ( const Term * t : _indices )
+	{
+		delete t;
+	}
+}
+
+void ArrayTerm::print ( ostream & o ) const
+{
+	o << *_array;
+	for ( const Term * t : _indices )
+	{
+		o << "[" << *t << "]";
+	}
+}
+
+ArrayTerm * ArrayTerm::clone() const
+{
+	return new ArrayTerm ( *this );
 }
 
 //------------------------------------//
