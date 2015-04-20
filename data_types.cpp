@@ -272,6 +272,11 @@ void DataType::print_arr ( std::ostream & o ) const
 	}
 }
 
+bool DataType::can_index_array() const
+{
+	return is_scalar() && _type.is_integral();
+}
+
 bool coerce ( const DataType & t1, const DataType & t2, DataType & result ) noexcept
 {
 	if ( !t1.is_scalar() || !t2.is_scalar() )

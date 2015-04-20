@@ -229,7 +229,7 @@ class QuantifiedFormula : public Formula
 // * BooleanTerm
 // * Havoc
 // * Relation
-// * ArrayWrite ( not implemented ) : TODO
+// * ArrayWrite
 class AtomicProposition : public Formula
 {
 	virtual AtomicProposition * clone() const override = 0;
@@ -303,6 +303,37 @@ class Relation : public AtomicProposition
 		virtual Relation * clone() const override;
 };
 
+class ArrayWrite : public AtomicProposition
+{
+	private:
+		// a'[1][x+4][1,2,3]
+		//    ^^^^^^  ^^^^^
+		//    \=+=/   \   |
+		//     \+/     \  |
+		// _indices_1   \ |
+		//                |
+		// _indices_2 ----+
+		//
+		const Variable * _arr;
+
+		using Terms = std::vector < Term * >;
+
+		Terms _indices_1;
+		Terms _indices_2;
+		Terms _values;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		ArrayWrite ( const Variable & arr, Terms idxs_1, Terms idxs_2, Terms values );
+		ArrayWrite ( const ArrayWrite & orig );
+		ArrayWrite ( ArrayWrite && old );
+		~ArrayWrite();
+
+		virtual ArrayWrite * clone() const override;
+
+};
 
 class ArithmeticOperation : public Term
 {

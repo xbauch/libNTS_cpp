@@ -47,37 +47,16 @@ struct Example
 		BitVectorVariable *var_3;
 
 		TransitionRule *ctr1;
+
+		State * st_1;
+		State * st_3;
+
+		Variable * arr;
 		//Transition *t1;
-
-		Nts1 ( struct Nts2 *n )
+		
+		void add_arr()
 		{
-			basic = new BasicNts ( "nts_1" );
-			var_1 = new BitVectorVariable ( "var_1",  4 );
-			var_2 = new BitVectorVariable ( "var_2",  8 );
-			var_3 = new BitVectorVariable ( "var_3", 16 );
-
-			var_1->insert_to ( *basic );
-			var_2->insert_to ( *basic );
-			var_3->insert_to ( *basic );
-
-			auto s1 = new State ( "s1" );
-			auto s2 = new State ( "s2" );
-			auto s3 = new State ( "s3" );
-			
-			s1->insert_to ( *basic );	
-			s2->insert_to ( *basic );
-			s3->insert_to ( *basic );
-
-
-			ctr1 = new CallTransitionRule ( *n->basic, {
-					new VariableReference ( *var_1, false ),
-					new VariableReference ( *var_2, false ) },
-					{ var_3 } );
-			auto t = new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
-			t->insert_to ( *basic );
-
-			// Array variable
-			Variable * arr = new Variable (
+			arr = new Variable (
 					DataType (
 						ScalarType::Integer(),
 						3,
@@ -86,9 +65,11 @@ struct Example
 					"my_array"
 			);
 
-
 			arr->insert_to ( *basic );
+		}
 
+		void add_arr_read ()
+		{
 			VariableReference * aref = new VariableReference ( *arr, false );
 			std::vector < Term * > idx_terms_1;
 			std::vector < Term * > idx_terms_2;
@@ -126,16 +107,84 @@ struct Example
 							unique_ptr < Formula > ( r )
 						)
 					),
-					*s1,
-					*s2
+					*st_1,
+					*st_3
 			);
 
-			tra->insert_to ( *basic );
-
-
-		
-
+			tra->insert_to ( *basic );	
 		}
+
+		void add_arr_write ()
+		{
+			std::vector < Term * > idx_terms_1;
+			for ( int i = 0; i < 3; i++ )
+			{
+				idx_terms_1.push_back ( new IntConstant ( 2 + i ) );
+			}
+
+			std::vector < Term * > idx_terms_2;
+			std::vector < Term * > value_terms;
+
+			for ( int i = 0; i < 7; i++ )
+			{
+				idx_terms_2.push_back ( new IntConstant ( 3 * i ) );
+				value_terms.push_back ( new IntConstant ( 2 * i ) );
+			}
+
+			auto wr = new ArrayWrite (
+					*arr,
+					move ( idx_terms_1 ),
+					move ( idx_terms_2 ),
+					move ( value_terms )
+			);
+
+			Transition * tra = new Transition (
+					unique_ptr < FormulaTransitionRule > (
+						new FormulaTransitionRule ( 
+							unique_ptr < Formula > ( wr )
+						)
+					),
+					*st_1,
+					*st_3
+			);
+
+			tra->insert_to ( *basic );	
+		}
+
+		Nts1 ( struct Nts2 *n )
+		{
+			basic = new BasicNts ( "nts_1" );
+			var_1 = new BitVectorVariable ( "var_1",  4 );
+			var_2 = new BitVectorVariable ( "var_2",  8 );
+			var_3 = new BitVectorVariable ( "var_3", 16 );
+
+			var_1->insert_to ( *basic );
+			var_2->insert_to ( *basic );
+			var_3->insert_to ( *basic );
+
+			auto s1 = new State ( "s1" );
+			auto s2 = new State ( "s2" );
+			auto s3 = new State ( "s3" );
+
+			s1->insert_to ( *basic );	
+			s2->insert_to ( *basic );
+			s3->insert_to ( *basic );
+
+			this->st_1 = s1;
+			this->st_3 = s3;
+
+			ctr1 = new CallTransitionRule ( *n->basic, {
+					new VariableReference ( *var_1, false ),
+					new VariableReference ( *var_2, false ) },
+					{ var_3 } );
+			auto t = new Transition ( unique_ptr<TransitionRule> ( ctr1 ), *s1, *s2 );
+			t->insert_to ( *basic );
+
+			add_arr();
+			add_arr_read();
+			add_arr_write();
+		}
+
 		~Nts1()
 		{
 			delete basic;

@@ -99,6 +99,8 @@ namespace nts
 
 			const std::vector < Term * > & idx_terms() const { return _arr_size; }
 
+			bool can_index_array() const;
+
 	};
 
 	/**

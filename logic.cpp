@@ -99,6 +99,46 @@ const char * to_str ( Quantifier q  )
 	}
 }
 
+// What happens, if we apply 'n' terms to an array term?
+bool array_type_aply_terms ( const DataType & a_type, unsigned int n, DataType & out )
+{
+	unsigned int tot = a_type.arr_dimension() + a_type.ref_dimension();
+
+	if ( tot < n )
+		return false;
+
+	unsigned int arr;
+	unsigned int ref;
+	if ( a_type.arr_dimension() >= n )
+	{
+		arr = a_type.arr_dimension() - n;
+		ref = a_type.ref_dimension();
+	} else {
+		arr = 0;
+		ref = tot - n;
+	}
+
+	std::vector < Term * > index_terms;
+	index_terms.reserve ( arr );
+	for ( unsigned int i = 0; i < arr; i++ )
+	{
+		index_terms.push_back ( a_type.idx_terms()[ n + i ]->clone() ); 
+	}
+
+	out = DataType ( a_type.scalar_type(), ref, move ( index_terms ) );
+	return true;
+}
+
+DataType array_type_apply_terms ( const DataType & a_type, unsigned int n )
+{
+	DataType t;
+	if ( array_type_aply_terms ( a_type, n, t ) )
+		return t;
+
+	throw TypeError();
+}
+
+
 //------------------------------------//
 // Term                               //
 //------------------------------------//
@@ -511,6 +551,112 @@ void Relation::print ( std::ostream & o ) const
 }
 
 //------------------------------------//
+// ArrayWrite                         //
+//------------------------------------//
+
+ArrayWrite::ArrayWrite (
+		const Variable & arr,
+		Terms idxs_1,
+		Terms idxs_2,
+		Terms values )	
+{
+	if ( idxs_2.size() != values.size() )
+		throw TypeError();
+
+	for ( const Term *t : idxs_1 )
+	{
+		if ( ! t->type().can_index_array() )
+			throw TypeError();
+	}
+
+	for ( const Term *t : idxs_1 )
+	{
+		if ( ! t->type().can_index_array() )
+			throw TypeError();
+	}
+
+	DataType value_type = array_type_apply_terms ( arr.type(), idxs_1.size() + 1 );
+	for ( const Term * t : values )
+	{
+		if ( ! coercible_ne ( t->type(), value_type ) )
+			throw TypeError();
+	}
+
+
+	_arr       = & arr;
+	_indices_1 = move ( idxs_1 );
+	_indices_2 = move ( idxs_2 );
+	_values    = move ( values );
+}
+
+ArrayWrite::ArrayWrite ( const ArrayWrite & orig )
+{
+	_arr = orig._arr->clone();
+	_indices_1.reserve ( orig._indices_1.size() );
+	_indices_2.reserve ( orig._indices_2.size() );
+	_values   .reserve ( orig._values   .size() );
+
+	for ( auto * x : orig._indices_1 )
+		_indices_1.push_back ( x->clone() );
+
+	for ( auto *x : orig._indices_2 )
+		_indices_2.push_back ( x->clone() );
+
+	for ( auto *x : orig._values )
+		_values.push_back ( x -> clone() );
+}
+
+ArrayWrite::ArrayWrite ( ArrayWrite && old )
+{
+	_arr       = move ( old._arr       );
+	_indices_1 = move ( old._indices_1 );
+	_indices_2 = move ( old._indices_2 );
+	_values    = move ( old._values    );
+
+}
+
+ArrayWrite::~ArrayWrite()
+{
+	for ( const Term * t : _indices_1 )
+		delete t;
+
+	for ( const Term * t : _indices_2 )
+		delete t;
+
+	for ( const Term * t : _values )
+		delete t;
+}
+
+ArrayWrite * ArrayWrite::clone() const
+{
+	return new ArrayWrite ( *this );
+}
+
+void ArrayWrite::print ( ostream & o ) const
+{
+	o << _arr->name() << "'";
+	for ( const Term * t : _indices_1 )
+		o << "[" << *t << "]";
+
+	o << "[ ";
+	to_csv ( o,
+			_indices_2.cbegin(),
+			_indices_2.cend(),
+			ptr_print_function < Term >,
+			", "
+	);
+	o << " ] = [";
+	to_csv ( o,
+			_values.cbegin(),
+			_values.cend(),
+			ptr_print_function < Term >,
+			", "
+	);
+	o << "]";
+}
+
+
+//------------------------------------//
 // ArithmeticOperation                //
 //------------------------------------//
 
@@ -601,7 +747,7 @@ DataType ArrayTerm::after ( const DataType & a_type, unsigned int n )
 }
 
 ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
-	Term ( false, after ( arr->type(), indices.size() ) )	
+	Term ( false, array_type_apply_terms ( arr->type(), indices.size() ) )	
 {
 	_array = move ( arr );
 	_indices = move ( indices );
