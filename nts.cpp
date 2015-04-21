@@ -670,14 +670,10 @@ bool CallTransitionRule::coercible ( const Cont_1 & from, const Cont_2 & to )
 	> ( from.cbegin(), from.cend(), to.cbegin(), to.cend() );
 }
 
-CallTransitionRule::CallTransitionRule
-(
-		BasicNts        & dest,
-		const Terms     & in,
-		const Variables & out
-) :
-	TransitionRule ( Kind::Call ),
-	_dest          ( dest       )
+bool CallTransitionRule::check_args (
+				const BasicNts  & dest,
+				const Terms     & in,
+				const Variables & out  )
 {
 	const auto & par_in  = dest.params_in();
 	const auto & par_out = dest.params_out();
@@ -703,9 +699,41 @@ CallTransitionRule::CallTransitionRule
 		( par_out.cbegin(), par_out.cend(), pvar_to_type );
 
 	if ( ! coercible ( caller_in, callee_in ) )
-		throw TypeError();
+		return false;
 
 	if ( ! coercible ( callee_out, caller_out ) )
+		return false;
+
+	return true;
+}
+
+
+CallTransitionRule::CallTransitionRule
+(
+		BasicNts  &  dest,
+		Terms     && in,
+		Variables && out
+) :
+	TransitionRule ( Kind::Call ),
+	_dest          ( dest       )
+{
+	if ( !check_args ( dest, in, out ) )
+		throw TypeError();
+
+	_term_in = move ( in  );
+	_var_out = move ( out );
+}
+
+CallTransitionRule::CallTransitionRule
+(
+		BasicNts        & dest,
+		const Terms     & in,
+		const Variables & out
+) :
+	TransitionRule ( Kind::Call ),
+	_dest          ( dest       )
+{
+	if ( !check_args ( dest, in, out ) )
 		throw TypeError();
 
 	_term_in.insert ( _term_in.cbegin(), in.cbegin(), in.cend() );

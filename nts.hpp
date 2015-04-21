@@ -398,10 +398,16 @@ class CallTransitionRule : public TransitionRule
 		template < typename Cont_1, typename Cont_2 >
 		static bool coercible ( const Cont_1 & from, const Cont_2 & to );
 
+		static bool check_args (
+				const BasicNts  & dest,
+				const Terms     & in,
+				const Variables & out
+		);
+
 	public:
 		// Becomes an owner of all terms given in 'in :: ArithList'
 		CallTransitionRule ( BasicNts & dest, const Terms & in, const Variables &  out );
-		//CallTransitionRule ( BasicNts & dest, Terms && in, Variables && out );
+		CallTransitionRule ( BasicNts & dest, Terms && in, Variables && out );
 
 		virtual ~CallTransitionRule();
 
