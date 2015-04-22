@@ -171,6 +171,7 @@ class BasicNts
 
 		void remove_from_parent();
 		void insert_to ( Nts & parent );
+		Nts * parent() const { return _parent; }
 
 		const Variables & variables()  const { return _variables;  }
 		const Variables & params_in()  const { return _params_in;  }
