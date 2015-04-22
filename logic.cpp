@@ -143,15 +143,13 @@ DataType array_type_apply_terms ( const DataType & a_type, unsigned int n )
 // Term                               //
 //------------------------------------//
 
-Term::Term ( bool minus, DataType t ) :
-	_minus ( minus      ),
+Term::Term ( DataType t ) :
 	_type  ( move ( t ) )
 {
 	;
 }
 
 Term::Term ( const Term & orig ) :
-	_minus ( orig._minus ),
 	_type  ( orig._type  )
 {
 	;
@@ -669,7 +667,7 @@ void ArrayWrite::print ( ostream & o ) const
 ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 				unique_ptr < Term > t1,
 				unique_ptr < Term > t2 ) :
-	Term ( false, coerce ( t1->type(), t2->type() ) ),
+	Term ( coerce ( t1->type(), t2->type() ) ),
 	_op ( op ),
 	_t1 ( move ( t1 ) ),
 	_t2 ( move ( t2 ) )
@@ -678,7 +676,7 @@ ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 }
 
 ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
-	Term ( false, orig.type() ),
+	Term ( orig.type() ),
 	_op  ( orig._op )
 {
 	_t1 = unique_ptr<Term> ( orig._t1->clone() );
@@ -686,7 +684,7 @@ ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
 }
 
 ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
-	Term ( false, old.type() ),
+	Term ( old.type() ),
 	_op  ( std::move ( old._op ) ),
 	_t1  ( std::move ( old._t1 ) ),
 	_t2  ( std::move ( old._t2 ) )
@@ -753,14 +751,14 @@ DataType ArrayTerm::after ( const DataType & a_type, unsigned int n )
 }
 
 ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
-	Term ( false, array_type_apply_terms ( arr->type(), indices.size() ) )	
+	Term ( array_type_apply_terms ( arr->type(), indices.size() ) )	
 {
 	_array = move ( arr );
 	_indices = move ( indices );
 }
 
 ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
-	Term ( false, orig.type() )
+	Term ( orig.type() )
 {
 	_array = unique_ptr < Term > (orig._array->clone() );
 	_indices.resize ( orig._indices.size() );
@@ -791,6 +789,34 @@ void ArrayTerm::print ( ostream & o ) const
 ArrayTerm * ArrayTerm::clone() const
 {
 	return new ArrayTerm ( *this );
+}
+
+//------------------------------------//
+// MinusTerm                          //
+//------------------------------------//
+
+MinusTerm::MinusTerm ( unique_ptr < Term > term ) :
+	Term  ( term->type()  ),
+	_term ( move ( term ) )
+{
+	;
+}
+
+MinusTerm::MinusTerm ( const MinusTerm & orig ) :
+	Term ( orig.type() ),
+	_term ( unique_ptr < Term > ( orig._term->clone() ) )
+{
+	;
+}
+
+void MinusTerm::print ( ostream & o ) const
+{
+	o << "-" << *_term;
+}
+
+MinusTerm * MinusTerm::clone() const
+{
+	return new MinusTerm ( *this );
 }
 
 //------------------------------------//

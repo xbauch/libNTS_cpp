@@ -53,7 +53,6 @@ enum class Quantifier
 class Term
 {
 	private:
-		bool     _minus;
 		DataType _type;
 
 	protected:
@@ -62,7 +61,7 @@ class Term
 
 	public:
 		// type can be whatever type
-		Term ( bool minus, DataType type ); 
+		explicit Term ( DataType type ); 
 		Term ( const Term & orig );
 		virtual ~Term() = default;
 
@@ -406,11 +405,26 @@ class ArraySize : public Term
 };
 #endif
 
+class MinusTerm : public Term
+{
+	private:
+		std::unique_ptr < Term > _term;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		MinusTerm ( std::unique_ptr < Term > term );
+		MinusTerm ( const MinusTerm & orig );
+
+		virtual MinusTerm * clone() const override;
+};
+
 class Leaf : public Term
 {
 	public:
 		Leaf ( DataType type ) :
-			Term ( false, std::move ( type ) )
+			Term ( std::move ( type ) )
 		{ ; }
 
 		virtual Leaf * clone() const override = 0;
