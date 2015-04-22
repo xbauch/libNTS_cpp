@@ -71,6 +71,11 @@ class Nts
 			return _basics;
 		}
 
+		const std::list < Variable * > & variables() const
+		{
+			return _vars;
+		}
+
 		const std::string & name() const { return _name; }
 
 		std::unique_ptr < Formula > & init() { return _init; }
