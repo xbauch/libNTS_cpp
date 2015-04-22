@@ -67,8 +67,9 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 
 	if ( nts._instances.size() > 0 )
 	{
+		o << "instances ";
 		to_csv ( o, nts._instances.cbegin(), nts._instances.cend(),
-				ptr_print_function<Instance>, "\n" ) << "\n";
+				ptr_print_function<Instance>, ", " ) << ";\n";
 	}
 
 	if ( nts._basics.size() > 0 )
