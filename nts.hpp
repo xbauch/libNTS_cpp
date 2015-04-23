@@ -29,6 +29,7 @@
  * 
  */
 
+// TODO someone should destroy annotations
 
 namespace nts
 {
@@ -38,6 +39,18 @@ class BasicNts;
 class Instance;
 class Variable;
 class Formula;
+
+class Annotation;
+//using Annotations = std::list < Annotation * >;
+
+class Annotations : public std::list < Annotation * >
+{
+	public:
+		Annotations() { ; }
+		~Annotations();
+
+		void print ( std::ostream & o ) const;
+};
 
 class Nts
 {
@@ -84,6 +97,7 @@ class Nts
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
+		Annotations annotations;
 };
 
 class Instance
@@ -184,6 +198,8 @@ class BasicNts
 
 		const States & states() const { return _states; }
 
+		Annotations annotations;
+
 		friend std::ostream & operator<< ( std::ostream &, const BasicNts &);
 };
 
@@ -234,6 +250,8 @@ class State
 
 		const Transitions & incoming() const { return _incoming_tr; }
 		const Transitions & outgoing() const { return _outgoing_tr; }
+
+		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const State & );
 };
@@ -295,6 +313,7 @@ class Variable : public VariableBase
 
 		Variable * clone() const;
 
+		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
 };
@@ -350,6 +369,8 @@ class Transition
 		const BasicNts * parent() const { return _parent; }
 		void insert_to ( BasicNts & bn );
 		void remove_from_parent ();
+
+		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream & o, const Transition & );
 };
@@ -541,6 +562,52 @@ class BasicNts::Callers::iterator :
 		bool operator!= ( const iterator & rhs ) const;
 
 		const CallTransitionRule & operator* () const;
+};
+
+
+class Annotation
+{
+	public:
+		enum class Type
+		{
+			String
+		};
+
+	private:
+		std::string _name;
+		Type        _type;
+
+		Annotations           * _parent;
+		Annotations::iterator   _pos;
+
+	protected:
+		Annotation ( std::string name, Type t );
+		virtual void print ( std::ostream & o ) const = 0;
+
+	public:
+		virtual ~Annotation() = default;
+
+		void insert_to ( Annotations & ants );
+		void remove_from_parent ();
+
+		Annotations * parent() const { return _parent; }
+
+		friend std::ostream & operator<< ( std::ostream & o, const Annotation & );
+
+};
+
+class AnnotString : public Annotation
+{
+	private:
+		std::string _value;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		AnnotString ( std::string name, std::string value );
+		virtual ~AnnotString() = default;
+
 };
 
 

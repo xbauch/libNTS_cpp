@@ -170,6 +170,16 @@ struct Example
 			s2->insert_to ( *basic );
 			s3->insert_to ( *basic );
 
+			Annotation * a1 = new AnnotString ( "origin", "f1::f2::foo" );
+			a1->insert_to ( s1->annotations );
+
+			Annotation * a2 = new AnnotString ( "blah", "foo(bar)" );
+			a2->insert_to ( s1->annotations );
+			
+			Annotation * a3 = new AnnotString ( "meta", "< author name='unknown' />" );
+			a3->insert_to ( s2->annotations );
+
+
 			this->st_1 = s1;
 			this->st_3 = s3;
 

@@ -96,8 +96,6 @@ class Formula
 		friend std::ostream & operator<< ( std::ostream &, const Formula & );
 };
 
-// TODO: Some syntactic sugar for those formulas?
-
 class FormulaBop : public Formula
 {
 	private:

@@ -25,6 +25,26 @@ using std::function;
 using std::pair;
 
 //------------------------------------//
+// Annotations                        //
+//------------------------------------//
+
+Annotations::~Annotations()
+{
+	for ( const Annotation * a : *this )
+	{
+		delete a;
+	}
+}
+
+void Annotations::print ( ostream & o ) const
+{
+	for ( const Annotation * a : *this )
+	{
+		o << *a << "\n";
+	}
+}
+
+//------------------------------------//
 // Nts                                //
 //------------------------------------//
 
@@ -186,7 +206,8 @@ void State::remove_from_parent ()
 
 ostream & nts::operator<< ( ostream &o , const State &s )
 {
-	o << s._name;
+	s.annotations.print ( o );
+	o << "\t" << s._name;
 	return o;
 }
 
@@ -285,13 +306,20 @@ void BasicNts::print_variables ( std::ostream & o ) const
 	}
 }
 
+template < typename T >
+void ptr_name_print_function ( ostream & o, T * x )
+{
+	o << x->name();
+}
+
 template < typename InputIterator >
 void print_state_list (
 		ostream      & o,
 		InputIterator  begin,
 		InputIterator  end,
 		const string & prefix,
-		function < bool ( typename InputIterator::value_type ) > predicate
+		function < bool ( typename InputIterator::value_type ) > predicate,
+		bool with_annotations = false
 )
 {
 	Filtered < InputIterator > fs ( begin, end, predicate );
@@ -302,7 +330,10 @@ void print_state_list (
 		return;
 	
 	o << prefix;
-	to_csv ( o, b, e, ptr_print_function < State >, ", " );
+	if ( with_annotations )
+		to_csv ( o, b, e, ptr_print_function < State >, ",\n" );
+	else
+		to_csv ( o, b, e, ptr_name_print_function < State >, ", " );
 	o << ";\n";
 }
 
@@ -310,7 +341,9 @@ void BasicNts::print_states_basic ( std::ostream & o ) const
 {
 	auto p = [] ( State *s ) -> bool
 	{
-		// Later ( after annotations ) force annotated states to print
+		// Print annotated states
+		if ( s->annotations.size() > 0 )
+			return true;
 
 		if ( s->outgoing().size() >= 1 )
 			return false;
@@ -327,9 +360,8 @@ void BasicNts::print_states_basic ( std::ostream & o ) const
 		return true;
 	};
 
-	print_state_list ( o, _states.cbegin(), _states.cend(), "\tstates\t", p );
+	print_state_list ( o, _states.cbegin(), _states.cend(), "\tstates\n", p, true );
 }
-
 
 void BasicNts::print_states_initial ( std::ostream & o ) const
 {
@@ -371,6 +403,7 @@ void BasicNts::print_transitions ( std::ostream & o ) const
 
 std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
 {
+	bn.annotations.print ( o );
 	o << bn._name << " {\n";
 
 	bn.print_params_in  ( o );
@@ -606,7 +639,8 @@ void Transition::remove_from_parent ()
 
 ostream & nts::operator<< ( ostream &o, const Transition &t )
 {
-	o << t._from << " -> " << t._to << " " << *t._rule;
+	t.annotations.print ( o );
+	o << t._from.name() << " -> " << t._to.name() << " " << *t._rule;
 	return o;
 }
 
@@ -870,6 +904,7 @@ Variable * Variable::clone() const
 
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )
 {
+	v.annotations.print ( o );
 	o << v._name;
 	v._type.print_arr ( o );
 	o <<  " : ";
@@ -887,4 +922,49 @@ BitVectorVariable::BitVectorVariable ( const std::string &name, unsigned int wid
 	;
 }
 
+Annotation::Annotation ( string name, Type t ) :
+	_name   ( move ( name ) ),
+	_type   ( move ( t    ) ),
+	_parent ( nullptr       )
+{
+	;
+}
+
+void Annotation::insert_to ( Annotations & ants )
+{
+	if ( _parent )
+		throw std::logic_error ( "Already have a parent" );
+
+	_parent = & ants;
+	_pos = _parent->insert ( _parent->cend(), this );
+}
+
+void Annotation::remove_from_parent()
+{
+	if ( !_parent )
+		throw std::logic_error ( "Does not have a parent" );
+
+	_parent->erase ( _pos );
+	_parent = nullptr;
+}
+
+ostream & nts::operator<< ( ostream & o, const Annotation & a )
+{
+	o << "@" << a._name << ":";
+	a.print ( o );
+	o << ";";
+	return o;
+}
+
+AnnotString::AnnotString ( string name, string value ) :
+	Annotation ( move ( name ), Type::String ),
+	_value ( move ( value ) )
+{
+	;
+}
+
+void AnnotString::print ( ostream & o ) const
+{
+	o << "string:\"" << _value << "\"";
+}
 
