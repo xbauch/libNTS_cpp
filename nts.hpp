@@ -41,12 +41,12 @@ class Variable;
 class Formula;
 
 class Annotation;
-//using Annotations = std::list < Annotation * >;
 
 class Annotations : public std::list < Annotation * >
 {
 	public:
 		Annotations() { ; }
+		Annotations ( const Annotations & orig );
 		~Annotations();
 
 		void print ( std::ostream & o ) const;
@@ -97,6 +97,7 @@ class Nts
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
+		// FIXME: annotations are not printed
 		Annotations annotations;
 };
 
@@ -282,7 +283,7 @@ class Variable
 
 	public:
 		Variable ( DataType t, const std::string & name );
-		Variable ( const Variable &  old ) = delete;
+		Variable ( const Variable & orig );
 		Variable ( const Variable && old );
 
 		virtual ~Variable() = default;
@@ -592,6 +593,7 @@ class Annotation
 
 		friend std::ostream & operator<< ( std::ostream & o, const Annotation & );
 
+		virtual Annotation * clone() const = 0;
 };
 
 class AnnotString : public Annotation
@@ -603,11 +605,15 @@ class AnnotString : public Annotation
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		const std::string & value() const { return _value; }
-		std::string & value() { return _value; }
 		AnnotString ( std::string name, std::string value );
+		AnnotString ( const AnnotString & orig );
+
 		virtual ~AnnotString() = default;
 
+		const std::string & value() const { return _value; }
+		std::string & value() { return _value; }
+
+		virtual AnnotString * clone() const override;
 };
 
 

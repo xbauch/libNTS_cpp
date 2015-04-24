@@ -28,6 +28,15 @@ using std::pair;
 // Annotations                        //
 //------------------------------------//
 
+Annotations::Annotations ( const Annotations & orig )
+{
+	for ( Annotation * a : orig )
+	{
+		Annotation * cl = a->clone();
+		cl->insert_to ( *this );
+	}
+}
+
 Annotations::~Annotations()
 {
 	for ( const Annotation * a : *this )
@@ -829,6 +838,15 @@ Variable::Variable ( DataType t, const std::string & name ) :
 
 }
 
+Variable::Variable ( const Variable & orig ) :
+	_type        ( orig._type ),
+	_name        ( orig._name ),
+	_parent_list ( nullptr ),
+	annotations  ( orig.annotations )
+{
+	;
+}
+
 Variable::Variable ( const Variable && old ) :
 	_type ( std::move ( old._type ) ),
 	_name ( std::move ( old._name ) ),
@@ -897,9 +915,7 @@ void Variable::insert_before ( const Variable & var )
 
 Variable * Variable::clone() const
 {
-	Variable *v = new Variable ( _type, _name );
-
-	return v;
+	return new Variable ( *this );
 }
 
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )
@@ -963,8 +979,21 @@ AnnotString::AnnotString ( string name, string value ) :
 	;
 }
 
+AnnotString::AnnotString ( const AnnotString & orig ) :
+	Annotation ( orig.name(), orig.type() ),
+	_value ( orig._value )
+{
+	;
+}
+
 void AnnotString::print ( ostream & o ) const
 {
 	o << "string:\"" << _value << "\"";
 }
+
+AnnotString * AnnotString::clone() const
+{
+	return new AnnotString ( *this );
+}
+
 
