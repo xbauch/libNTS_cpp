@@ -258,18 +258,8 @@ class State
 
 class QuantifiedVariableList;
 
-class VariableBase
-{
-	public:
-		enum class Type
-		{
-			Variable,
-			Array,
-			ArrayRef
-		};
-};
 
-class Variable : public VariableBase
+class Variable
 {
 	private:
 		DataType    _type;
@@ -316,11 +306,6 @@ class Variable : public VariableBase
 		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
-};
-
-class ArrayVariable : public VariableBase
-{
-
 };
 
 class BitVectorVariable final : public Variable
