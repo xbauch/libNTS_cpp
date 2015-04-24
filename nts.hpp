@@ -586,6 +586,10 @@ class Annotation
 
 		Annotations * parent() const { return _parent; }
 
+		Type type() const { return _type; }
+		const std::string & name() const { return _name; }
+		std::string & name() { return _name; }
+
 		friend std::ostream & operator<< ( std::ostream & o, const Annotation & );
 
 };
@@ -599,6 +603,8 @@ class AnnotString : public Annotation
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
+		const std::string & value() const { return _value; }
+		std::string & value() { return _value; }
 		AnnotString ( std::string name, std::string value );
 		virtual ~AnnotString() = default;
 
