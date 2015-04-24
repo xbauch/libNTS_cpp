@@ -243,6 +243,7 @@ class Havoc : public AtomicProposition
 	public:
 		Havoc ();
 		explicit Havoc ( const std::initializer_list < const Variable * > & list );
+		explicit Havoc ( std::vector < const Variable * > list );
 		Havoc ( const Havoc & orig );
 		Havoc ( Havoc && old );
 		virtual ~Havoc() = default;

@@ -454,6 +454,13 @@ Havoc::Havoc ( const std::initializer_list < const Variable *> & vars ) :
 	;
 }
 
+Havoc::Havoc ( std::vector < const Variable * > list ) :
+	_vars ( move ( list ) )
+{
+	;
+}
+
+
 Havoc::Havoc ( const Havoc & orig ) :
 	_vars ( orig._vars )
 {
