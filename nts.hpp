@@ -201,6 +201,8 @@ class BasicNts
 		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const BasicNts &);
+
+		void * user_data;
 };
 
 class State
@@ -254,6 +256,8 @@ class State
 		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const State & );
+
+		void * user_data;
 };
 
 class QuantifiedVariableList;
@@ -306,6 +310,9 @@ class Variable
 		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
+
+
+		void * user_data;
 };
 
 class BitVectorVariable final : public Variable
@@ -358,6 +365,8 @@ class Transition
 		Annotations annotations;
 
 		friend std::ostream & operator<< ( std::ostream & o, const Transition & );
+
+		void * user_data;
 };
 
 class TransitionRule
