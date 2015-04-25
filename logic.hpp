@@ -82,16 +82,31 @@ class Term
 // * Atomic proposition
 // * FormulaNot
 // * FormulaBop
+// * QuantifiedFormula
 class Formula
 {
+	public:
+		enum Type
+		{
+			AtomicProposition,
+			FormulaNot,
+			FormulaBop,
+			QuantifiedFormula
+		};
+
+	private:
+		Type _type;
+
 	protected:
 		virtual void print ( std::ostream & o ) const = 0;
 
 	public:
-		Formula()          = default;
+		Formula ( Type t ) : _type ( t ) { ; }
 		virtual ~Formula() = default;
 
 		virtual Formula * clone() const = 0;
+
+		Type type() const { return _type; }
 
 		friend std::ostream & operator<< ( std::ostream &, const Formula & );
 };
@@ -229,7 +244,24 @@ class QuantifiedFormula : public Formula
 // * ArrayWrite
 class AtomicProposition : public Formula
 {
-	virtual AtomicProposition * clone() const override = 0;
+	public:
+		enum APType
+		{
+			BooleanTerm,
+			Havoc,
+			Relation,
+			ArrayWrite
+		};
+
+	private:
+		APType _aptype;
+
+	protected:
+		AtomicProposition ( APType t );
+
+	public:
+		virtual AtomicProposition * clone() const override = 0;
+		APType aptype() const { return _aptype; }
 };
 
 class Havoc : public AtomicProposition

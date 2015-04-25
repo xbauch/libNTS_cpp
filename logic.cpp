@@ -178,6 +178,7 @@ ostream & nts::operator<< ( ostream & o, const Formula & f )
 FormulaBop::FormulaBop ( BoolOp op,
 		unique_ptr<Formula> f1,
 		unique_ptr<Formula> f2 ) :
+	Formula ( Type::FormulaBop ),
 	_op ( op ),
 	_f { move ( f1 ), move ( f2 ) }
 {
@@ -185,14 +186,16 @@ FormulaBop::FormulaBop ( BoolOp op,
 }
 
 FormulaBop::FormulaBop ( const FormulaBop & orig ) :
-	_op ( orig._op )
+	Formula ( Type::FormulaBop ),
+	_op     ( orig._op    )
 {
 	_f[0] = unique_ptr<Formula> ( orig._f[0]->clone() );
 	_f[1] = unique_ptr<Formula> ( orig._f[1]->clone() );
 }
 
 FormulaBop::FormulaBop ( FormulaBop && old ) :
-	_op ( old._op )
+	Formula ( Type::FormulaBop ),
+	_op     ( old._op    )
 {
 	_f[0] = move ( old._f[0] );
 	_f[1] = move ( old._f[1] );
@@ -223,17 +226,20 @@ void FormulaBop::print ( ostream & o ) const
 //------------------------------------//
 
 FormulaNot::FormulaNot ( unique_ptr<Formula> f ) :
+	Formula ( Type::FormulaNot ),
 	_f ( move(f) )
 {
 	;
 }
 
-FormulaNot::FormulaNot ( const FormulaNot & orig )
+FormulaNot::FormulaNot ( const FormulaNot & orig ) :
+	Formula ( Type::FormulaNot )
 {
 	_f = unique_ptr<Formula> ( orig._f->clone() );
 }
 
-FormulaNot::FormulaNot ( FormulaNot && old )
+FormulaNot::FormulaNot ( FormulaNot && old ) : 
+	Formula ( Type::FormulaNot )
 {
 	_f = move ( old._f );
 }
@@ -399,6 +405,7 @@ QuantifiedFormula::QuantifiedFormula (
 				Quantifier              q,
 				const QuantifiedType &  type,
 				unique_ptr<Formula>     f    ) :
+	Formula ( Type::QuantifiedFormula ),
 	_qvlist ( q, type         ),
 	_f      ( move ( f ) )
 {
@@ -409,6 +416,7 @@ QuantifiedFormula::QuantifiedFormula (
 				Quantifier              q,
 				const QuantifiedType && type,
 				unique_ptr<Formula>     f    ) :
+	Formula ( Type::QuantifiedFormula ),
 	_qvlist ( q, type         ),
 	_f      ( move ( f ) )
 {
@@ -416,12 +424,14 @@ QuantifiedFormula::QuantifiedFormula (
 }
 
 QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
+	Formula ( Type::QuantifiedFormula ),
 	_qvlist ( orig._qvlist )
 {
 	_f = unique_ptr<Formula> ( orig._f->clone() );
 }
 
 QuantifiedFormula::QuantifiedFormula ( QuantifiedFormula && old ) :
+	Formula ( Type::QuantifiedFormula ),
 	_qvlist ( move ( old._qvlist ) ),
 	_f      ( move ( old._f      ) )
 {
@@ -439,22 +449,36 @@ void QuantifiedFormula::print ( ostream & o ) const
 }
 
 //------------------------------------//
+// AtomicProposition                  //
+//------------------------------------//
+
+AtomicProposition::AtomicProposition ( APType t ) :
+	Formula ( Formula::Type::AtomicProposition ),
+	_aptype ( t )
+{
+	;
+}
+
+//------------------------------------//
 // Havoc                              //
 //------------------------------------//
 
 Havoc::Havoc () :
+	AtomicProposition ( APType::Havoc ),
 	_vars ( { } )
 {
 	;
 }
 
 Havoc::Havoc ( const std::initializer_list < const Variable *> & vars ) :
+	AtomicProposition ( APType::Havoc ),
 	_vars ( vars )
 {
 	;
 }
 
 Havoc::Havoc ( std::vector < const Variable * > list ) :
+	AtomicProposition ( APType::Havoc ),
 	_vars ( move ( list ) )
 {
 	;
@@ -462,12 +486,14 @@ Havoc::Havoc ( std::vector < const Variable * > list ) :
 
 
 Havoc::Havoc ( const Havoc & orig ) :
+	AtomicProposition ( APType::Havoc ),
 	_vars ( orig._vars )
 {
 	;
 }
 
 Havoc::Havoc ( Havoc && old ) :
+	AtomicProposition ( APType::Havoc ),
 	_vars ( move ( old._vars ) )
 {
 	;
@@ -492,7 +518,8 @@ void Havoc::print ( ostream & o ) const
 // BooleanTerm                        //
 //------------------------------------//
 
-BooleanTerm::BooleanTerm ( unique_ptr<Term> t )
+BooleanTerm::BooleanTerm ( unique_ptr<Term> t ) :
+	AtomicProposition ( APType::BooleanTerm )
 {
 	if ( !t->type().is_scalar() )
 		throw TypeError();
@@ -502,12 +529,14 @@ BooleanTerm::BooleanTerm ( unique_ptr<Term> t )
 	_t = move(t);
 }
 
-BooleanTerm::BooleanTerm ( const BooleanTerm & orig )
+BooleanTerm::BooleanTerm ( const BooleanTerm & orig ) :
+	AtomicProposition ( APType::BooleanTerm )
 {
 	_t = unique_ptr<Term> ( orig._t->clone() );
 }
 
-BooleanTerm::BooleanTerm ( BooleanTerm && old )
+BooleanTerm::BooleanTerm ( BooleanTerm && old ) :
+	AtomicProposition ( APType::BooleanTerm )
 {
 	_t = move ( old._t );
 }
@@ -527,6 +556,7 @@ void BooleanTerm::print ( std::ostream & o ) const
 //------------------------------------//
 
 Relation::Relation ( RelationOp op, unique_ptr<Term> t1, unique_ptr<Term> t2 ) :
+	AtomicProposition ( APType::Relation ),
 	_op   ( op ),
 	_type ( coerce ( t1->type(), t2->type() ) )
 {
@@ -535,6 +565,7 @@ Relation::Relation ( RelationOp op, unique_ptr<Term> t1, unique_ptr<Term> t2 ) :
 }
 
 Relation::Relation ( const Relation & orig ) :
+	AtomicProposition ( APType::Relation ),
 	_op   ( orig._op   ),
 	_type ( orig._type )
 {
@@ -543,6 +574,7 @@ Relation::Relation ( const Relation & orig ) :
 }
 
 Relation::Relation ( Relation && old ) :
+	AtomicProposition ( APType::Relation ),
 	_op   ( move ( old._op   ) ),
 	_t1   ( move ( old._t1   ) ),
 	_t2   ( move ( old._t2   ) ),
@@ -569,7 +601,8 @@ ArrayWrite::ArrayWrite (
 		const Variable & arr,
 		Terms idxs_1,
 		Terms idxs_2,
-		Terms values )	
+		Terms values ):
+	AtomicProposition ( APType::ArrayWrite )
 {
 	if ( idxs_2.size() != values.size() )
 		throw TypeError();
@@ -600,7 +633,8 @@ ArrayWrite::ArrayWrite (
 	_values    = move ( values );
 }
 
-ArrayWrite::ArrayWrite ( const ArrayWrite & orig )
+ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
+	AtomicProposition ( APType::ArrayWrite )
 {
 	_arr = orig._arr->clone();
 	_indices_1.reserve ( orig._indices_1.size() );
@@ -617,7 +651,8 @@ ArrayWrite::ArrayWrite ( const ArrayWrite & orig )
 		_values.push_back ( x -> clone() );
 }
 
-ArrayWrite::ArrayWrite ( ArrayWrite && old )
+ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
+	AtomicProposition ( APType::ArrayWrite )
 {
 	_arr       = move ( old._arr       );
 	_indices_1 = move ( old._indices_1 );
