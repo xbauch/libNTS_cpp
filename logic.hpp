@@ -129,8 +129,8 @@ class FormulaBop : public Formula
 		FormulaBop ( FormulaBop && old );
 		virtual ~FormulaBop() = default;
 
-		const Formula & formula_1 () const;
-		const Formula & formula_2 () const;
+		Formula & formula_1 () const;
+		Formula & formula_2 () const;
 
 		virtual FormulaBop * clone() const override;
 };
@@ -149,7 +149,7 @@ class FormulaNot : public Formula
 		FormulaNot ( FormulaNot && old );
 		virtual ~FormulaNot() = default;
 
-		const Formula & formula() const;
+		Formula & formula() const;
 
 		virtual FormulaNot * clone() const override;
 };
@@ -233,6 +233,7 @@ class QuantifiedFormula : public Formula
 		virtual ~QuantifiedFormula() = default;
 
 		const QuantifiedVariableList & list() const { return _qvlist; }
+		Formula & formula() const { return *_f; }
 
 		virtual QuantifiedFormula * clone() const override;
 };
@@ -280,7 +281,9 @@ class Havoc : public AtomicProposition
 		Havoc ( Havoc && old );
 		virtual ~Havoc() = default;
 
-		const std::vector < const Variable *> & variables () const;
+		const std::vector < const Variable *> & variables () const { return _vars; }
+		std::vector < const Variable *> & variables () { return _vars; }
+
 
 		virtual Havoc * clone() const override;
 };

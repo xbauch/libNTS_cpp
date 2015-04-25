@@ -354,11 +354,11 @@ class Transition
 		Transition ( std::unique_ptr<TransitionRule> rule, State &s1, State &s2 );
 		~Transition();
 
-		const TransitionRule & rule() const { return *_rule; }
-		const State & from() const { return _from; }
-		const State & to() const { return _to; }
+		TransitionRule & rule() const { return *_rule; }
+		State & from() const { return _from; }
+		State & to() const { return _to; }
 
-		const BasicNts * parent() const { return _parent; }
+		BasicNts * parent() const { return _parent; }
 		void insert_to ( BasicNts & bn );
 		void remove_from_parent ();
 
@@ -392,7 +392,7 @@ class TransitionRule
 		virtual ~TransitionRule() = default;
 
 		Kind kind() const { return _kind; }
-		const Transition * transition() const { return _t; }
+		Transition * transition() const { return _t; }
 
 		friend std::ostream & operator<< ( std::ostream & o, const TransitionRule &);
 };
@@ -449,7 +449,7 @@ class FormulaTransitionRule : public TransitionRule
 		explicit FormulaTransitionRule ( std::unique_ptr<Formula> f );
 		virtual ~FormulaTransitionRule () = default;
 
-		const Formula & formula() const { return *_f; }
+		Formula & formula() const { return *_f; }
 };
 
 

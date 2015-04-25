@@ -201,12 +201,12 @@ FormulaBop::FormulaBop ( FormulaBop && old ) :
 	_f[1] = move ( old._f[1] );
 }
 
-const Formula & FormulaBop::formula_1() const
+Formula & FormulaBop::formula_1() const
 {
 	return *_f[0];
 }
 
-const Formula & FormulaBop::formula_2() const
+Formula & FormulaBop::formula_2() const
 {
 	return *_f[1];
 }
@@ -244,7 +244,7 @@ FormulaNot::FormulaNot ( FormulaNot && old ) :
 	_f = move ( old._f );
 }
 
-const Formula & FormulaNot::formula() const
+Formula & FormulaNot::formula() const
 {
 	return *_f;
 }
