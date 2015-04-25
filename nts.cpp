@@ -57,9 +57,9 @@ void Annotations::print ( ostream & o ) const
 // Nts                                //
 //------------------------------------//
 
-Nts::Nts ( const string & name ) :
-	_name ( name    ),
-	_init ( nullptr )
+Nts::Nts ( string  name ) :
+	_name ( move ( name ) ),
+	_init ( nullptr       )
 {
 	;
 }
@@ -154,24 +154,13 @@ ostream & nts::operator<< ( ostream &o , const Instance &i )
 // State                              //
 //------------------------------------//
 
-State::State ( const std::string & name ) :
-	_parent   ( nullptr ),
-	_name     ( name    ),
-	_initial  ( false   ),
-	_final    ( false   ),
-	_error    ( false   ),
-	user_data ( nullptr )
-{
-	;
-}
-
-State::State ( const std::string && name ) :
-	_parent   ( nullptr ),
-	_name     ( name    ),
-	_initial  ( false   ),
-	_final    ( false   ),
-	_error    ( false   ),
-	user_data ( nullptr )
+State::State ( string name ) :
+	_parent   ( nullptr       ),
+	_name     ( move ( name ) ),
+	_initial  ( false         ),
+	_final    ( false         ),
+	_error    ( false         ),
+	user_data ( nullptr       )
 {
 	;
 }
@@ -225,10 +214,10 @@ ostream & nts::operator<< ( ostream &o , const State &s )
 //------------------------------------//
 // BasicNts                           //
 //------------------------------------//
-BasicNts::BasicNts ( const std::string & name ) :
-	_name     ( name    ),
-	_parent   ( nullptr ),
-	user_data ( nullptr )
+BasicNts::BasicNts ( string name ) :
+	_name     ( move ( name ) ),
+	_parent   ( nullptr       ),
+	user_data ( nullptr       )
 {
 	;
 }
@@ -834,11 +823,11 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 // Variable                           //
 //------------------------------------//
 
-Variable::Variable ( DataType t, const std::string & name ) :
-	_type        ( move ( t ) ),
-	_name        ( name       ),
-	_parent_list ( nullptr    ),
-	user_data    ( nullptr    )
+Variable::Variable ( DataType t, string name ) :
+	_type        ( move ( t    ) ),
+	_name        ( move ( name ) ),
+	_parent_list ( nullptr       ),
+	user_data    ( nullptr       )
 {
 
 }
@@ -939,8 +928,8 @@ ostream & nts::operator<< ( std::ostream & o, const Variable &v )
 // BitVector Variable                 //
 //------------------------------------//
 
-BitVectorVariable::BitVectorVariable ( const std::string &name, unsigned int width ) :
-	Variable ( DataType ( ScalarType::BitVector(width) ), name )
+BitVectorVariable::BitVectorVariable ( string name, unsigned int width ) :
+	Variable ( DataType ( ScalarType::BitVector(width) ), move ( name ) )
 {
 	;
 }

@@ -70,7 +70,7 @@ class Nts
 		std::unique_ptr < Formula > _init;
 
 	public:
-		explicit Nts ( const std::string & name );
+		explicit Nts ( std::string name );
 
 		// Copying breaks ownership
 		Nts ( const Nts & ) = delete;
@@ -174,7 +174,7 @@ class BasicNts
 		class Callers;
 		class Callees;
 
-		explicit BasicNts ( const std::string & name );
+		explicit BasicNts ( std::string name );
 		BasicNts ( const BasicNts &  ) = delete;
 		BasicNts ( const BasicNts && ) = delete;
 
@@ -225,8 +225,7 @@ class State
 		bool _error;
 
 	public:
-		State ( const std::string &  name );
-		State ( const std::string && name );
+		State ( std::string name );
 		State ( const State &  st  ) = delete;
 		State ( const State && old ) = delete;
 
@@ -282,7 +281,7 @@ class Variable
 		void insert_to ( Variables & parent, const Variables::iterator & before );
 
 	public:
-		Variable ( DataType t, const std::string & name );
+		Variable ( DataType t, std::string name );
 		Variable ( const Variable & orig );
 		Variable ( const Variable && old );
 
@@ -319,7 +318,7 @@ class Variable
 class BitVectorVariable final : public Variable
 {
 	public:
-		BitVectorVariable ( const std::string &name, unsigned int width);
+		BitVectorVariable ( std::string name, unsigned int width);
 
 		virtual ~BitVectorVariable() = default;
 };
