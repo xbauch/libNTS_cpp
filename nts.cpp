@@ -155,21 +155,23 @@ ostream & nts::operator<< ( ostream &o , const Instance &i )
 //------------------------------------//
 
 State::State ( const std::string & name ) :
-	_parent  ( nullptr ),
-	_name    ( name    ),
-	_initial ( false   ),
-	_final   ( false   ),
-	_error   ( false   )
+	_parent   ( nullptr ),
+	_name     ( name    ),
+	_initial  ( false   ),
+	_final    ( false   ),
+	_error    ( false   ),
+	user_data ( nullptr )
 {
 	;
 }
 
 State::State ( const std::string && name ) :
-	_parent  ( nullptr ),
-	_name    ( name    ),
-	_initial ( false   ),
-	_final   ( false   ),
-	_error   ( false   )
+	_parent   ( nullptr ),
+	_name     ( name    ),
+	_initial  ( false   ),
+	_final    ( false   ),
+	_error    ( false   ),
+	user_data ( nullptr )
 {
 	;
 }
@@ -224,8 +226,9 @@ ostream & nts::operator<< ( ostream &o , const State &s )
 // BasicNts                           //
 //------------------------------------//
 BasicNts::BasicNts ( const std::string & name ) :
-	_name   ( name    ),
-	_parent ( nullptr )
+	_name     ( name    ),
+	_parent   ( nullptr ),
+	user_data ( nullptr )
 {
 	;
 }
@@ -602,9 +605,10 @@ bool BasicNts::Callers::iterator::operator!= ( const iterator &rhs) const
 //------------------------------------//
 
 Transition::Transition ( unique_ptr<TransitionRule> rule, State &s1, State &s2 ) :
-	_parent ( nullptr ),
-	_from   ( s1      ),
-	_to     ( s2      )
+	_parent   ( nullptr ),
+	_from     ( s1      ),
+	_to       ( s2      ),
+	user_data ( nullptr )
 {
 	_rule = move ( rule );
 	_rule->_t = this;
@@ -833,24 +837,27 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 Variable::Variable ( DataType t, const std::string & name ) :
 	_type        ( move ( t ) ),
 	_name        ( name       ),
-	_parent_list ( nullptr    )
+	_parent_list ( nullptr    ),
+	user_data    ( nullptr    )
 {
 
 }
 
 Variable::Variable ( const Variable & orig ) :
-	_type        ( orig._type ),
-	_name        ( orig._name ),
-	_parent_list ( nullptr ),
-	annotations  ( orig.annotations )
+	_type        ( orig._type       ),
+	_name        ( orig._name       ),
+	_parent_list ( nullptr          ),
+	annotations  ( orig.annotations ),
+	user_data    ( nullptr          )
 {
 	;
 }
 
 Variable::Variable ( const Variable && old ) :
-	_type ( std::move ( old._type ) ),
-	_name ( std::move ( old._name ) ),
-	_parent_list ( old._parent_list )
+	_type        ( move ( old._type        ) ),
+	_name        ( move ( old._name        ) ),
+	_parent_list ( move ( old._parent_list ) ),
+	user_data    ( move ( old.user_data    ) )
 {
 	if ( _parent_list )
 	{
