@@ -464,22 +464,14 @@ AtomicProposition::AtomicProposition ( APType t ) :
 //------------------------------------//
 
 Havoc::Havoc () :
-	AtomicProposition ( APType::Havoc ),
-	_vars ( { } )
+	AtomicProposition ( APType::Havoc )
 {
 	;
 }
 
-Havoc::Havoc ( const std::initializer_list < const Variable *> & vars ) :
+Havoc::Havoc ( std::vector < Variable * > list ) :
 	AtomicProposition ( APType::Havoc ),
-	_vars ( vars )
-{
-	;
-}
-
-Havoc::Havoc ( std::vector < const Variable * > list ) :
-	AtomicProposition ( APType::Havoc ),
-	_vars ( move ( list ) )
+	variables ( move ( list ) )
 {
 	;
 }
@@ -487,14 +479,14 @@ Havoc::Havoc ( std::vector < const Variable * > list ) :
 
 Havoc::Havoc ( const Havoc & orig ) :
 	AtomicProposition ( APType::Havoc ),
-	_vars ( orig._vars )
+	variables ( orig.variables )
 {
 	;
 }
 
 Havoc::Havoc ( Havoc && old ) :
 	AtomicProposition ( APType::Havoc ),
-	_vars ( move ( old._vars ) )
+	variables ( move ( old.variables ) )
 {
 	;
 }
@@ -507,7 +499,7 @@ Havoc * Havoc::clone() const
 void Havoc::print ( ostream & o ) const
 {
 	o << "havoc ( ";
-	to_csv ( o, _vars.cbegin(), _vars.cend(),
+	to_csv ( o, variables.cbegin(), variables.cend(),
 			[] ( ostream & o, const Variable *var ) {
 				o << var->name();
 			}, ", " );

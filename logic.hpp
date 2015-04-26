@@ -267,23 +267,17 @@ class AtomicProposition : public Formula
 
 class Havoc : public AtomicProposition
 {
-	private:
-		std::vector < const Variable *> _vars;
-
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		Havoc ();
-		explicit Havoc ( const std::initializer_list < const Variable * > & list );
-		explicit Havoc ( std::vector < const Variable * > list );
+		explicit Havoc ( std::vector < Variable * > list );
 		Havoc ( const Havoc & orig );
 		Havoc ( Havoc && old );
 		virtual ~Havoc() = default;
 
-		const std::vector < const Variable *> & variables () const { return _vars; }
-		std::vector < const Variable *> & variables () { return _vars; }
-
+		std::vector < Variable * > variables;
 
 		virtual Havoc * clone() const override;
 };
