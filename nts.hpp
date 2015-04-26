@@ -144,7 +144,16 @@ class BasicNts
 		Basics::iterator _pos;
 
 		friend class Transition;
-		std::list < Transition *> _transitions;
+
+		/*
+		 * Must be a list. User will want to
+		 * iterate over a list of transitions
+		 * and remove some of them.
+		 * We need that erase() on underlying conteiner
+		 * does not invalidate other iterators.
+		 */
+		using Transitions = std::list < Transition * >;
+		Transitions _transitions;
 
 		friend class Variable;
 		// This must be the same type as in NTS
@@ -182,7 +191,8 @@ class BasicNts
 
 		const std::string & name() const { return _name; }
 
-		// Transitions
+		const Transitions & transitions() { return _transitions; }
+
 		Callers callers();
 		Callees callees();
 
