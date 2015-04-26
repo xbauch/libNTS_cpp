@@ -52,8 +52,18 @@ enum class Quantifier
 
 class Term
 {
+	public:
+		enum TermType
+		{
+			ArithmeticOperation,
+			ArrayTerm,
+			MinusTerm,
+			Leaf
+		};
+
 	private:
 		DataType _type;
+		TermType _term_type;
 
 	protected:
 		using p_Term = std::unique_ptr < Term >;
@@ -61,11 +71,12 @@ class Term
 
 	public:
 		// type can be whatever type
-		explicit Term ( DataType type ); 
+		Term ( DataType type, TermType ttype ); 
 		Term ( const Term & orig );
 		virtual ~Term() = default;
 
 		const DataType & type () const { return _type; }
+		TermType term_type() const { return _term_type; }
 
 		// Caller is responsible to manage this
 		// (can not use unique_ptr, they are not covariant )
@@ -451,18 +462,32 @@ class MinusTerm : public Term
 class Leaf : public Term
 {
 	public:
-		Leaf ( DataType type ) :
-			Term ( std::move ( type ) )
+		enum LeafType
+		{
+			ThreadID,
+			IntConstant,
+			UserConstant,
+			VariableReference
+		};
+
+	private:
+		LeafType _leaf_type;
+
+	public:
+		Leaf ( DataType type, LeafType ltype ) :
+			Term ( std::move ( type ), TermType::Leaf ),
+			_leaf_type ( ltype )
 		{ ; }
 
+		LeafType leaf_type() const { return _leaf_type; }
 		virtual Leaf * clone() const override = 0;
 };
 
 class Constant : public Leaf
 {
 	public:
-		explicit Constant ( DataType type ) :
-			Leaf ( std::move ( type ) )
+		Constant ( DataType type, LeafType ltype ) :
+			Leaf ( std::move ( type ), ltype )
 		{ ; }
 
 		virtual Constant * clone() const override = 0;
@@ -505,8 +530,7 @@ class UserConstant : public Constant
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		explicit UserConstant ( DataType type, std::string  & value );
-		explicit UserConstant ( DataType type, std::string && value );
+		UserConstant ( DataType type, std::string value );
 		UserConstant ( const UserConstant & orig );
 		UserConstant ( UserConstant && old );
 		virtual ~UserConstant() = default;

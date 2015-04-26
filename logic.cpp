@@ -143,8 +143,9 @@ DataType array_type_apply_terms ( const DataType & a_type, unsigned int n )
 // Term                               //
 //------------------------------------//
 
-Term::Term ( DataType t ) :
-	_type  ( move ( t ) )
+Term::Term ( DataType t, TermType tt ) :
+	_type  ( move ( t ) ),
+	_term_type ( tt )
 {
 	;
 }
@@ -701,7 +702,7 @@ void ArrayWrite::print ( ostream & o ) const
 ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 				unique_ptr < Term > t1,
 				unique_ptr < Term > t2 ) :
-	Term ( coerce ( t1->type(), t2->type() ) ),
+	Term ( coerce ( t1->type(), t2->type() ), TermType::ArithmeticOperation ),
 	_op ( op ),
 	_t1 ( move ( t1 ) ),
 	_t2 ( move ( t2 ) )
@@ -710,7 +711,7 @@ ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 }
 
 ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
-	Term ( orig.type() ),
+	Term ( orig.type(), TermType::ArithmeticOperation ),
 	_op  ( orig._op )
 {
 	_t1 = unique_ptr<Term> ( orig._t1->clone() );
@@ -718,7 +719,7 @@ ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
 }
 
 ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
-	Term ( old.type() ),
+	Term ( old.type(), TermType::ArithmeticOperation ),
 	_op  ( std::move ( old._op ) ),
 	_t1  ( std::move ( old._t1 ) ),
 	_t2  ( std::move ( old._t2 ) )
@@ -785,14 +786,17 @@ DataType ArrayTerm::after ( const DataType & a_type, unsigned int n )
 }
 
 ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
-	Term ( array_type_apply_terms ( arr->type(), indices.size() ) )	
+	Term (
+		array_type_apply_terms ( arr->type(), indices.size() ),
+		TermType::ArrayTerm
+	)	
 {
 	_array = move ( arr );
 	_indices = move ( indices );
 }
 
 ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
-	Term ( orig.type() )
+	Term ( orig.type(), TermType::ArrayTerm )
 {
 	_array = unique_ptr < Term > (orig._array->clone() );
 	_indices.resize ( orig._indices.size() );
@@ -830,14 +834,14 @@ ArrayTerm * ArrayTerm::clone() const
 //------------------------------------//
 
 MinusTerm::MinusTerm ( unique_ptr < Term > term ) :
-	Term  ( term->type()  ),
+	Term  ( term->type(), TermType::MinusTerm  ),
 	_term ( move ( term ) )
 {
 	;
 }
 
 MinusTerm::MinusTerm ( const MinusTerm & orig ) :
-	Term ( orig.type() ),
+	Term ( orig.type(), TermType::MinusTerm ),
 	_term ( unique_ptr < Term > ( orig._term->clone() ) )
 {
 	;
@@ -857,7 +861,7 @@ MinusTerm * MinusTerm::clone() const
 // ThreadID                           //
 //------------------------------------//
 ThreadID::ThreadID() :
-	Constant ( DataType ( ScalarType::Integral() ) )
+	Constant ( DataType ( ScalarType::Integral() ), LeafType::ThreadID )
 {
 	;
 }
@@ -878,7 +882,7 @@ void ThreadID::print ( ostream & o ) const
 //------------------------------------//
 
 IntConstant::IntConstant ( int value ) :
-	Constant ( DataType ( ScalarType::Integral() ) ),
+	Constant ( DataType ( ScalarType::Integral() ), LeafType::IntConstant ),
 	_value   ( value )
 {
 	;
@@ -898,30 +902,23 @@ void IntConstant::print ( ostream & o ) const
 // UserConstant                       //
 //------------------------------------//
 
-UserConstant::UserConstant ( DataType type, string & value ) :
-	Constant ( move ( type ) ),
-	_value   ( value         )
-{
-	;
-}
-
-UserConstant::UserConstant ( DataType type, string && value ) :
-	Constant ( move ( type ) ),
-	_value   ( value         )
+UserConstant::UserConstant ( DataType type, string value ) :
+	Constant ( move ( type  ), LeafType::UserConstant ),
+	_value   ( move ( value ) )
 {
 	;
 }
 
 
 UserConstant::UserConstant ( const UserConstant & orig ) :
-	Constant ( orig.type() ),
+	Constant ( orig ),
 	_value   ( orig._value )
 {
 	;
 }
 
 UserConstant::UserConstant ( UserConstant && old ) :
-	Constant ( move ( old.type() ) ),
+	Constant ( move ( old.type() ), LeafType::UserConstant ),
 	_value   ( move ( old._value ) )
 {
 	;
@@ -942,7 +939,7 @@ UserConstant * UserConstant::clone() const
 //------------------------------------//
 
 VariableReference::VariableReference ( const Variable &var, bool primed ) :
-	Leaf    ( var.type() ),
+	Leaf    ( var.type(), LeafType::VariableReference ),
 	_var    ( &var       ),
 	_primed ( primed     )
 {
