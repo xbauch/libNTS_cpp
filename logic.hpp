@@ -380,6 +380,9 @@ class ArrayWrite : public AtomicProposition
 
 		virtual ArrayWrite * clone() const override;
 
+		const Terms & indices_1() const { return _indices_1; }
+		const Terms & indices_2() const { return _indices_2; }
+		const Terms & values()    const { return _values;    }
 };
 
 class ArithmeticOperation : public Term
