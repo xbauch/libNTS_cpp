@@ -745,12 +745,7 @@ bool CallTransitionRule::check_args (
 }
 
 
-CallTransitionRule::CallTransitionRule
-(
-		BasicNts  &  dest,
-		Terms     && in,
-		Variables && out
-) :
+CallTransitionRule::CallTransitionRule ( BasicNts & dest, Terms in, Variables out ) :
 	TransitionRule ( Kind::Call ),
 	_dest          ( dest       )
 {
@@ -761,21 +756,6 @@ CallTransitionRule::CallTransitionRule
 	_var_out = move ( out );
 }
 
-CallTransitionRule::CallTransitionRule
-(
-		BasicNts        & dest,
-		const Terms     & in,
-		const Variables & out
-) :
-	TransitionRule ( Kind::Call ),
-	_dest          ( dest       )
-{
-	if ( !check_args ( dest, in, out ) )
-		throw TypeError();
-
-	_term_in.insert ( _term_in.cbegin(), in.cbegin(), in.cend() );
-	_var_out.insert ( _var_out.cbegin(), out.cbegin(), out.cend() );
-}
 
 CallTransitionRule::~CallTransitionRule()
 {

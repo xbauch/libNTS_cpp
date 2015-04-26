@@ -437,8 +437,7 @@ class CallTransitionRule : public TransitionRule
 
 	public:
 		// Becomes an owner of all terms given in 'in :: ArithList'
-		CallTransitionRule ( BasicNts & dest, const Terms & in, const Variables &  out );
-		CallTransitionRule ( BasicNts & dest, Terms && in, Variables && out );
+		CallTransitionRule ( BasicNts & dest, Terms in, Variables out );
 
 		virtual ~CallTransitionRule();
 
