@@ -9,10 +9,18 @@
 #include <memory>
 #include "data_types.hpp"
 
-// TODO: Substitute term with another term
 
 namespace nts
 {
+
+/*
+ * Some concepts
+ * 1. Data type of term is fixed.
+ *    Please, do not change type of any term,
+ *    neither directly (writing to _type field),
+ *    nor indirectly (by substitution of subterm).
+ */
+
 
 // Forward declaration (not to depend on nts.hpp)
 class Variable;
@@ -307,7 +315,7 @@ class BooleanTerm : public AtomicProposition
 		BooleanTerm ( BooleanTerm && old );
 		virtual ~BooleanTerm() = default;
 
-		const Term & term () const { return *_t; }
+		Term & term () const { return *_t; }
 
 		virtual BooleanTerm * clone() const override;
 };
@@ -334,8 +342,8 @@ class Relation : public AtomicProposition
 		virtual ~Relation() = default;
 
 		const RelationOp & operation() const { return _op; }
-		const Term & term1() const { return *_t1; }
-		const Term & term2() const { return *_t2; }
+		Term & term1() const { return *_t1; }
+		Term & term2() const { return *_t2; }
 
 		const DataType & type() const { return _type; }
 
@@ -468,6 +476,8 @@ class MinusTerm : public Term
 	public:
 		MinusTerm ( std::unique_ptr < Term > term );
 		MinusTerm ( const MinusTerm & orig );
+
+		Term & term() const { return *_term; }
 
 		virtual MinusTerm * clone() const override;
 };
