@@ -11,6 +11,7 @@ using std::move;
 using std::ostream;
 using std::string;
 using std::vector;
+using std::transform;
 
 const char * to_str ( BoolOp op )
 {
@@ -727,21 +728,6 @@ ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
 	;
 }
 
-const ArithOp & ArithmeticOperation::operation() const
-{
-	return _op;
-}
-
-const Term & ArithmeticOperation::term1() const
-{
-	return *_t1;
-}
-
-const Term & ArithmeticOperation::term2() const
-{
-	return *_t2;
-}
-
 ArithmeticOperation * ArithmeticOperation::clone() const
 {
 	return new ArithmeticOperation ( *this );
@@ -827,6 +813,18 @@ void ArrayTerm::print ( ostream & o ) const
 ArrayTerm * ArrayTerm::clone() const
 {
 	return new ArrayTerm ( *this );
+}
+
+void ArrayTerm::transform_indices ( IdxTransFunc f )
+{
+	transform (
+		_indices.cbegin(),
+		_indices.cend(),
+		_indices.begin(),
+		[ &f ] ( Term * t ) {
+			return f ( p_Term ( t ) ).release();
+		}
+	);
 }
 
 //------------------------------------//

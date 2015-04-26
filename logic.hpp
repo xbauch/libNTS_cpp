@@ -395,9 +395,9 @@ class ArithmeticOperation : public Term
 		ArithmeticOperation ( ArithmeticOperation && old );
 		virtual ~ArithmeticOperation() = default;
 
-		const ArithOp & operation() const;
-		const Term & term1() const;
-		const Term & term2() const;
+		const ArithOp & operation() const { return _op; }
+		Term & term1() const { return *_t1; }
+		Term & term2() const { return *_t2; }
 
 		virtual ArithmeticOperation * clone() const override;
 };
@@ -420,6 +420,19 @@ class ArrayTerm : public Term
 		ArrayTerm ( ArrayTerm && old );
 
 		virtual ~ArrayTerm();
+
+		Term & array() const { return *_array; }
+
+		// A function which becomes an owner of given term
+		// and gives caller a new term to use
+		using IdxTransFunc = std::function< p_Term ( p_Term ) >;
+
+		/**
+		 * Transforms indices with given function.
+		 * @post for each position in _indices,
+		 *       _indices[i] is set to f ( old ( _indices[i] ) )
+		 */
+		void transform_indices ( IdxTransFunc f );
 
 		virtual ArrayTerm * clone() const override;
 };
