@@ -17,42 +17,7 @@ using std::make_pair;
 using std::find_if;
 using std::logic_error;
 using std::unique_ptr;
-
-/*
- * Jak to udelat s nazvy promennych?
- * Pridame jednoduche scope resolution pomoci ctyrtecky ( :: ).
- * To neni legalni znak, a tak pred exportem vysledku nahradime vsechny vyskyty
- * tohoto stringu necim neskodnym (napr. stringem "II"). No jo, ale to neco neskodneho se nesmi vyskytovat
- * ve funkcich predtim! Tedy tu vec hned na zacatku nahradime napriklad "I_I",
- * tedy kazdy po sobe jdouci druhy vyskyt "I" nahradime "_I".
- * OO __ => _i_Y ahojYYsvete
- *
- * Ale co kdyz existuji promenne "promI_I" a "promII"?
- *
- * Pamatujeme si vsechny promenne se stejnym prefixem (vyraz v prvnich zavorkach)
- * ([^0-9I]*)[0-9]*I.*
- * Muzeme si je take drzet serazene.
- *
- * A co kdybych se vykaslal na zachovavani nazvu promennych,
- * vsechny je pojmenovaval nejak nesmyslene ( "prom_17" )
- * a u kazde promenne si pamatoval v anotaci, odkud prisla?
- *
- * Ukazka promenne, ktera puvodne byla promennou v basic_3,
- * nez byl basic_3 inlinovay z basic_1.
- * @orig:string:"basic_1::basic_3::i";
- *
- * Na zacatku kazdou promennou oanotuji "i" - jeji puvodni nazev.
- * Pokud se BasicNTS, ve kterem se promenna nachazi, nainlinuje do jineho,
- * prida se nazev volaneho BasicNts do anotace jako prefix.
- *
- * Pokud nekdo dokaze potom z anotaci pojmenovat dane promenne tak,
- * aby to davalo smysl - necht to udela.
- *
- * V anotacich muzu pouzivat ty krasne ctyrtecky, ale v nazvech promennych ne.
- *
- *
- * Btw to same muzu pozdeji udelat pro stavy.
- */
+using std::to_string;
 
 class FunctionInliner
 {
@@ -145,27 +110,6 @@ void annotate_states ( Nts & n )
 	}
 }
 
-// Chtel bych si pro kazdy BasicNts drzet
-// seznam (s konstantnim pristupem - pole )
-// promennych, ocislovanych indexy pole.
-// Prvky toho pole by ukazovaly jednak na danou promennou ve volanem
-// BasicNts, tak i na odpovidajici (nove vytvorenou) promennou
-//
-// Dale, kazda promenna by si drzela seznam formuli, ktere na ni odkazuji
-//
-//
-// Hlavni otazka: Jak efektivne zduplikovat formuli tak, aby ve vysledku pouzivala
-// jine promenne?
-// Odpoved: Zduplikujeme ji normalne. TODO
-
-
-/**
- *@brief Replace transition with given call rule with 
- */
-void inline_call ( CallTransitionRule & r )
-{
-
-}
 
 AnnotString * find_origin ( Annotations & ants )
 {
@@ -195,6 +139,18 @@ unique_ptr < Term > substitute_term ( unique_ptr < Term > t )
 
 
 Variable * substitute ( Variable * var )
+{
+	if ( var->user_data == nullptr )
+		return var;
+
+	Variable * v2 = ( Variable * ) var->user_data;
+	if ( v2->type() != var->type() )
+		throw TypeError();
+
+	return v2;
+}
+
+const Variable * substitute_const ( const Variable * var )
 {
 	if ( var->user_data == nullptr )
 		return var;
@@ -327,9 +283,9 @@ void substitute_variables ( QuantifiedFormula & qf )
 /**
  * @brief Substitute variables inside formula with their shadow variables.
  * @pre Each variable in formula must have 'user_data' set to nullptr
- * or poinring to another variable.
+ * or pointing to another variable.
  * @post Occurences of variables, which had 'user data' pointing to some other variable,
- * are substituted with the other variable.
+ * are substituted with the other variable. Nothing else is modified.
  */
 void substitute_variables ( Formula & f )
 {
@@ -355,7 +311,7 @@ void substitute_variables ( Formula & f )
  * @brief copies 'v' to 'bn' an makes v.user_pointer point to the copy
  * @pre v must have 'origin' annotation. @see annotate_variable()
  */
-void transfer_to ( BasicNts & bn, Variable & v, const string prefix )
+void transfer_to ( BasicNts & bn, Variable & v, const string & prefix )
 {
 	// Create a copy of the variable
 	Variable * cl = v.clone();
@@ -371,44 +327,212 @@ void transfer_to ( BasicNts & bn, Variable & v, const string prefix )
 	as->value() = move ( new_origin );		
 }
 
-/**
- * @pre All variables in destination BasicNtses must have 'origin' annotation
- */
-void inline_calls ( BasicNts & bn )
+void transfer_to ( BasicNts & bn, State & s, const string & prefix )
 {
-	// Find all destination NTSes
-	unordered_set < BasicNts * > dests;
-	for ( auto & i : bn.callees() )
+	State * cl = new State ( s.name() );
+	s.user_data = cl;
+	cl->insert_to ( bn );
+
+	if ( s.is_error() )
+		cl->is_error() = true;
+
+	AnnotString * as = find_origin ( cl->annotations );
+	if ( !as )
+		throw logic_error ( "Precondition failed: Missing 'origin' annotation" );
+
+	string new_origin = prefix + as->value();
+	as->value() = move ( new_origin );
+}
+
+class Inliner
+{
+	private:
+		BasicNts & _bn;
+		unordered_set < BasicNts * > _dests;
+
+		void transfer_transition ( Transition & t );
+		void inline_call_transition ( Transition & t, unsigned int id );
+		void add_initial_final_states ( Transition & t);
+
+	public:
+		Inliner ( BasicNts & bn ) : _bn ( bn ) { ; }
+
+		void find_destionation_ntses();
+		void create_shadow_variables();
+		void inline_call_transitions();
+		void clear_user_pointers();		
+};
+
+/**
+ * @brief Transfers transition from called BasicNts to caller BasicNts.
+ * @pre There must be new, unused control states in '_bn',
+ *      end user pointers in callee should point to
+ *      corresponding states in '_bn'.
+ *      Also, all local variables, which are reffered to in 't',
+ *      must have a copy in '_bn' (@ see substitute_variables ).
+ */
+void Inliner::transfer_transition ( Transition & t )
+{
+	TransitionRule * rule = t.rule().clone();
+	if ( rule->kind() == TransitionRule::Kind::Call )
 	{
-		dests.insert ( & i.dest() );
+		CallTransitionRule &r = *( CallTransitionRule * ) rule;
+		for ( Term *t : r.terms_in() )
+			substitute_variables ( *t );
+		r.transform_return_variables ( substitute_const );
+		
+	} else {
+		FormulaTransitionRule &r = *( FormulaTransitionRule * ) rule;
+		substitute_variables ( r.formula() );
 	}
 
-	// Create shadow variables
-	for ( BasicNts * b : dests )
+	if ( !t.from().user_data || !t.to().user_data )
+		throw logic_error ( "Unexpected nullptr" );
+
+	State * from = (State * ) t.from().user_data;
+	State * to   = (State * ) t.to().user_data;
+
+	Transition * t2 = new Transition (
+		unique_ptr < TransitionRule > ( rule ),
+		*from,
+		*to
+	);
+
+	t2->insert_to ( _bn );
+}
+
+void Inliner::add_initial_final_states ( Transition & t )
+{
+	BasicNts & dest = ( ( CallTransitionRule & ) t ).dest();
+
+	for ( State *s : dest.states() )
+	{
+		if ( s->is_initial() )
+		{
+			Transition * t_init = new Transition (
+				std::make_unique < FormulaTransitionRule> (
+					std::make_unique < Havoc > ()
+				),
+				t.from(), *s
+			);
+			t_init->insert_to ( _bn );
+		}
+
+		if ( s->is_final() )
+		{
+			Transition * t_fin = new Transition (
+				std::make_unique < FormulaTransitionRule > (
+					std::make_unique < Havoc > ()
+				),
+				*s, t.to()
+			);
+			t_fin->insert_to ( _bn );
+		}
+	}
+}
+
+/**
+ * @pre All variables in destination BasicNts points to variables in _bn.
+ */
+void Inliner::inline_call_transition ( Transition & t, unsigned int id )
+{
+	/*
+	 * 1 Add states + state mapping
+	 * 2 Copy transitions and change
+	 * 2.1 them to point between _bn states
+	 * 2.2 their formulas to use _bn variables
+	 * 3 Clear state mapping
+	 */
+	CallTransitionRule & ctr = (CallTransitionRule & ) t.rule();
+	BasicNts & dest = ctr.dest();
+
+	// Copy states
+	string prefix = _bn.name() + ":" + to_string ( id ) + ":";
+	for ( State * s : dest.states() )
+	{
+		transfer_to ( _bn, *s, prefix );
+	}
+
+	// Transfer transitions
+	for ( Transition *t : dest.transitions() )
+	{
+		transfer_transition ( *t );
+	}
+
+	add_initial_final_states ( t );
+
+	// Clear user pointers
+	for ( State *s : dest.states() )
+	{
+		s->user_data = nullptr;
+	}
+}
+
+
+void Inliner::find_destionation_ntses()
+{
+	for ( auto & i : _bn.callees() )
+	{
+		_dests.insert ( & i.dest() );
+	}
+}
+
+void Inliner::create_shadow_variables()
+{
+	for ( BasicNts * b : _dests )
 	{
 		string prefix = b->name() + "::";
 
 		for ( Variable * v : b->variables() )
-			transfer_to ( bn, *v,  prefix );
+			transfer_to ( _bn, *v,  prefix );
 
 		for ( Variable *v : b->params_in() )
-			transfer_to ( bn, *v, prefix );
+			transfer_to ( _bn, *v, prefix );
 
 		for ( Variable *v : b->params_out() )
-			transfer_to ( bn, *v, prefix );
+			transfer_to ( _bn, *v, prefix );
 
 	}
+}
 
+void Inliner::inline_call_transitions()
+{
+	unsigned int id = 0;
+	for ( Transition * t : _bn.transitions() )
+	{
+		if ( t->rule().kind() != TransitionRule::Kind::Call )
+			continue;
 
-	// Clear all used user pointers
-	
-	for ( BasicNts * b : dests )
+		inline_call_transition ( *t, id );
+		id++;
+	}
+}
+
+void Inliner::clear_user_pointers()
+{
+
+	for ( BasicNts * b : _dests )
 	{
 		for ( Variable * v : b->variables() )
 		{
 			v->user_data = nullptr;
 		}
 	}
+}
+
+/**
+ * @pre All variables in destination BasicNtses must have 'origin' annotation
+ */
+void inline_calls ( BasicNts & bn )
+{
+	Inliner iln ( bn );
+	iln.find_destionation_ntses();
+	iln.create_shadow_variables();
+	iln.inline_call_transitions();
+	iln.clear_user_pointers();
+
+
+	// TODO: normalize names
 }
 
 bool make_inline ( Nts & n )
