@@ -23,6 +23,7 @@ using std::distance;
 using std::unique_ptr;
 using std::function;
 using std::pair;
+using std::transform;
 
 //------------------------------------//
 // Annotations                        //
@@ -667,10 +668,21 @@ FormulaTransitionRule::FormulaTransitionRule ( unique_ptr<Formula> f ) :
 	;
 }
 
+FormulaTransitionRule::FormulaTransitionRule ( const FormulaTransitionRule & orig ) :
+	TransitionRule ( Kind::Formula )
+{
+	_f = unique_ptr < Formula > ( orig._f->clone() );
+}
+
 ostream & FormulaTransitionRule::print ( std::ostream & o ) const
 {
 	o << "{ " << *this->_f << " }";
 	return o;
+}
+
+FormulaTransitionRule * FormulaTransitionRule::clone() const
+{
+	return new FormulaTransitionRule ( *this );
 }
 
 //------------------------------------//
@@ -756,6 +768,18 @@ CallTransitionRule::CallTransitionRule ( BasicNts & dest, Terms in, Variables ou
 	_var_out = move ( out );
 }
 
+CallTransitionRule::CallTransitionRule ( const CallTransitionRule & orig ) :
+	TransitionRule ( Kind::Call    ),
+	_dest          ( orig._dest    ),
+	_var_out       ( orig._var_out )
+{
+	_term_in.reserve ( orig._term_in.size() );
+	_var_out.reserve ( orig._var_out.size() );
+
+	for ( const Term * t : orig._term_in )
+		_term_in.push_back ( t->clone() );
+}
+
 
 CallTransitionRule::~CallTransitionRule()
 {
@@ -764,6 +788,25 @@ CallTransitionRule::~CallTransitionRule()
 		delete _term_in.back();
 		_term_in.pop_back();
 	}
+}
+
+CallTransitionRule * CallTransitionRule::clone() const
+{
+	return new CallTransitionRule ( *this );
+}
+
+void CallTransitionRule::transform_return_variables ( VarTransFunc f )
+{
+	transform (
+			_var_out.cbegin(),
+			_var_out.cend(),
+			_var_out.begin(),
+			[ &f ] ( const Variable * v1 ) -> const Variable *
+			{
+				// TODO: Check type
+				return f ( v1 );
+			}
+	);
 }
 
 namespace

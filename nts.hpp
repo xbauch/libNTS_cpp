@@ -405,6 +405,8 @@ class TransitionRule
 		Transition * transition() const { return _t; }
 
 		friend std::ostream & operator<< ( std::ostream & o, const TransitionRule &);
+
+		virtual TransitionRule * clone() const = 0;
 };
 
 class Term;
@@ -438,13 +440,19 @@ class CallTransitionRule : public TransitionRule
 	public:
 		// Becomes an owner of all terms given in 'in :: ArithList'
 		CallTransitionRule ( BasicNts & dest, Terms in, Variables out );
+		CallTransitionRule ( const CallTransitionRule & orig );
 
 		virtual ~CallTransitionRule();
 
 		BasicNts & dest() const { return _dest; }
 
-		const Terms & variables_in()  const { return _term_in;  }
+		const Terms & terms_in()  const { return _term_in;  }
 		const Variables & variables_out() const { return _var_out; }
+
+		virtual CallTransitionRule * clone() const override;
+
+		using VarTransFunc = std::function < const Variable * ( const Variable * ) >;
+		void transform_return_variables ( VarTransFunc f );
 };
 
 class FormulaTransitionRule : public TransitionRule
@@ -456,9 +464,13 @@ class FormulaTransitionRule : public TransitionRule
 
 	public:
 		explicit FormulaTransitionRule ( std::unique_ptr<Formula> f );
+		FormulaTransitionRule ( const FormulaTransitionRule & orig );
+
 		virtual ~FormulaTransitionRule () = default;
 
 		Formula & formula() const { return *_f; }
+
+		virtual FormulaTransitionRule * clone() const override;
 };
 
 
