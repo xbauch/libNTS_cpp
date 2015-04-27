@@ -95,6 +95,8 @@ class SugarTransitionStates
 		// an owner of given formula
 		nts::Transition & operator () ( nts::Formula & f );
 		nts::Transition & operator () ( std::unique_ptr < nts::Formula > f );
+
+		nts::Transition & operator () ( nts::TransitionRule & ctr );
 };
 
 SugarTransitionStates operator ->* ( nts::State & from, nts::State & to );

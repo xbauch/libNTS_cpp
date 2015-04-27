@@ -305,6 +305,15 @@ Transition & SugarTransitionStates::operator () ( unique_ptr < Formula > f )
 	);
 }
 
+Transition & SugarTransitionStates::operator() ( TransitionRule & tr )
+{
+	return * new Transition (
+			unique_ptr < TransitionRule > ( & tr ),
+			_from,
+			_to
+	);
+}
+
 SugarTransitionStates operator ->* ( State & from, State & to )
 {
 	return SugarTransitionStates ( from, to );
