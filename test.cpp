@@ -4,9 +4,11 @@
 
 #include "nts.hpp"
 #include "logic.hpp"
+#include "sugar.hpp"
 
 using namespace std;
 using namespace nts;
+using namespace nts::sugar;
 
 
 struct Example

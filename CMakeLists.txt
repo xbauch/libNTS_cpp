@@ -9,7 +9,8 @@ set ( CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Wextra")
 add_library ( NTS_cpp SHARED
 	"data_types.cpp"
 	"nts.cpp"
-	"./logic.cpp"
+	"logic.cpp"
+	"sugar.cpp"
 )
 
 add_executable ( ntslib_test
