@@ -19,6 +19,7 @@ using std::logic_error;
 using std::unique_ptr;
 using std::to_string;
 
+#if 0
 class FunctionInliner
 {
 	private:
@@ -59,6 +60,7 @@ void FunctionInliner::init_names()
 		for ( Variable *v : _bn.parent()->variables() )
 			_visible_names.insert ( make_pair ( v->name, v ) );
 }
+#endif
 
 /*
  * T must provide member access to 'annotations ( list of annotations)'
@@ -350,7 +352,7 @@ class Inliner
 
 		void find_destionation_ntses();
 		void create_shadow_variables();
-		void inline_call_transitions();
+		unsigned int inline_call_transitions();
 		void clear_user_pointers();		
 		void normalize_names();
 };
@@ -496,7 +498,10 @@ void Inliner::create_shadow_variables()
 	}
 }
 
-void Inliner::inline_call_transitions()
+/**
+ * @return number of inlined calls
+ */
+unsigned int Inliner::inline_call_transitions()
 {
 	unsigned int id = 0;
 	for ( auto it = _bn.transitions().begin();
@@ -516,6 +521,8 @@ void Inliner::inline_call_transitions()
 		
 		id++;
 	}
+
+	return id;
 }
 
 void Inliner::normalize_names()
@@ -561,15 +568,71 @@ void Inliner::clear_user_pointers()
 
 /**
  * @pre All variables in destination BasicNtses must have 'origin' annotation
+ * @return number of inlined calls
  */
-void inline_calls ( BasicNts & bn )
+unsigned int inline_calls ( BasicNts & bn, unsigned int first_var_id )
 {
-	Inliner iln ( bn, 0 );
+	Inliner iln ( bn, first_var_id );
 	iln.find_destionation_ntses();
 	iln.create_shadow_variables();
-	iln.inline_call_transitions();
+	unsigned int n = iln.inline_call_transitions();
 	iln.normalize_names();
 	iln.clear_user_pointers();
+
+	return n;
+}
+
+/**
+ * @pre There is no recursion, neither direct nor indirect.
+ */
+void inline_calls_simple ( Nts & nts )
+{
+	unordered_set < BasicNts * > root_ntses;
+
+	// Annotate and rename global variables
+	unsigned int var_id = 0;
+	for ( Variable * v : nts.variables() )
+	{
+		auto * as = new AnnotString ( "origin", move ( v->name ) );
+		v->annotations.push_back ( as );
+		v->name = string ( "gvar_" ) + to_string ( var_id );
+		var_id++;
+	}
+
+	for ( Instance * i : nts.instances() )
+	{
+		root_ntses.insert ( & i->basic_nts() );
+	}
+
+	auto root_ntses_copy = root_ntses;
+
+	while ( !root_ntses.empty() )
+	{
+		for ( auto it = root_ntses.begin(); it != root_ntses.end(); )
+		{
+			BasicNts & bn = **it;
+			auto curr = it;
+			it++;
+
+			unsigned int n = inline_calls ( bn, var_id );
+			if ( n <= 0 )
+				root_ntses.erase ( curr );
+		}
+	}
+
+	// Remove ntses which are not in our set
+	for ( auto it = nts.basic_ntses().begin(); it != nts.basic_ntses().end(); )
+	{
+		BasicNts * bn = *it;
+		++it;
+
+		const bool is_in = root_ntses_copy.find ( bn ) != root_ntses_copy.end();
+		if ( !is_in )
+		{
+			bn->remove_from_parent();
+			delete bn;
+		}
+	}
 }
 
 bool make_inline ( Nts & n )

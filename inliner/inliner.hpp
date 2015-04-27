@@ -17,7 +17,16 @@ void substitute_variables ( nts::Term & t );
 
 void annotate_with_origin ( nts::BasicNts & bn );
 
-void inline_calls ( nts::BasicNts & bn );
+/**
+ * @pre All variables in destination BasicNtses must have 'origin' annotation
+ * @return number of inlined calls
+ */
+unsigned int inline_calls ( nts::BasicNts & bn, unsigned int first_var_id );
+
+/**
+ * @pre There is no recursion, neither direct nor indirect.
+ */
+void inline_calls_simple ( nts::Nts & nts );
 
 
 #endif // NTS_INLINER_HPP_
