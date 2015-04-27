@@ -110,8 +110,8 @@ class Instance
 		// Valid if parent is not null
 		Instances::iterator _pos;
 
-		BasicNts * function;
-		unsigned int n;
+		BasicNts * _bn;
+
 
 	public:	
 		Instance ( BasicNts *basic, unsigned int n );
@@ -125,6 +125,9 @@ class Instance
 		void insert_before ( const Instance & i );
 
 		friend std::ostream & operator<< ( std::ostream &o, const Instance & );
+
+		BasicNts & basic_nts() const { return * _bn; }
+		unsigned int n;
 };
 
 class Transition;

@@ -116,9 +116,9 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 //------------------------------------//
 
 Instance::Instance ( BasicNts *basic, unsigned int n )  :
-	_parent  ( nullptr ),
-	function ( basic   ),
-	n        ( n       )
+	_parent ( nullptr ),
+	_bn     ( basic   ),
+	n       ( n       )
 {
 	;
 }
@@ -147,7 +147,7 @@ void Instance::insert_to ( Nts & parent )
 
 ostream & nts::operator<< ( ostream &o , const Instance &i )
 {
-	o << i.function->name << '[' << i.n << ']';
+	o << i._bn->name << '[' << i.n << ']';
 	return o;
 }
 
