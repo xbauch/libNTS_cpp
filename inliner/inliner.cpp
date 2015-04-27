@@ -47,24 +47,17 @@ void FunctionInliner::init_names()
 {
 	_visible_names.clear();
 	for ( Variable *v : _bn.params_in() )
-		_visible_names.insert ( make_pair ( v->name(), v ) );
+		_visible_names.insert ( make_pair ( v->name, v ) );
 
 	for ( Variable *v : _bn.params_out() )
-		_visible_names.insert ( make_pair ( v->name(), v ) );
+		_visible_names.insert ( make_pair ( v->name, v ) );
 
 	for ( Variable *v : _bn.variables() )
-		_visible_names.insert ( make_pair ( v->name(), v ) );
+		_visible_names.insert ( make_pair ( v->name, v ) );
 
 	if ( _bn.parent() )
 		for ( Variable *v : _bn.parent()->variables() )
-			_visible_names.insert ( make_pair ( v->name(), v ) );
-}
-
-
-void annotate_variable ( Variable & v )
-{
-	Annotation * a = new AnnotString ( "origin", v.name() );
-	a->insert_to ( v.annotations );
+			_visible_names.insert ( make_pair ( v->name, v ) );
 }
 
 /*
@@ -74,40 +67,17 @@ void annotate_variable ( Variable & v )
 template < typename T >
 void annotate_with_origin ( T & x )
 {
-	Annotation * a = new AnnotString ( "origin", x.name() );
+	Annotation * a = new AnnotString ( "origin", x.name );
 	a->insert_to ( x.annotations );
 }
 
-
-/*
- * @post Every variables has an "origin" annotation
- */
-void annotate_variables ( Nts & n )
+void annotate_with_origin ( BasicNts & bn )
 {
-	// Global variables
-	for ( Variable *v : n.variables() )
-		annotate_variable ( *v );
+	for ( Variable *v : bn.variables() )
+		annotate_with_origin ( *v );
 
-	for ( BasicNts * bn : n.basic_ntses() )
-	{
-		for ( Variable *v : bn->params_in() )
-			annotate_variable ( *v );
-
-		for ( Variable *v : bn->params_out() )
-			annotate_variable ( *v );
-
-		for ( Variable *v : bn->variables() )
-			annotate_variable ( *v );
-	}
-}
-
-void annotate_states ( Nts & n )
-{
-	for ( BasicNts * bn : n.basic_ntses() )
-	{
-		for ( State *s : bn->states() )
-			annotate_with_origin ( *s );
-	}
+	for ( State *s : bn.states() )
+		annotate_with_origin ( *s );
 }
 
 
@@ -116,7 +86,7 @@ AnnotString * find_origin ( Annotations & ants )
 	Annotations::iterator it = find_if ( ants.begin(), ants.end(), 
 			[] ( const Annotation *a) -> bool
 			{
-				return a->name() == "origin" && a->type() == Annotation::Type::String;
+				return a->name == "origin" && a->type() == Annotation::Type::String;
 			}
 	);
 
@@ -130,11 +100,8 @@ void substitute_variables ( AtomicProposition & ap );
 void substitute_variables ( Term & t );
 void substitute_variables ( Formula & f );
 
-unique_ptr < Term > substitute_term ( unique_ptr < Term > t )
-{
-	substitute_variables ( *t );
-	return t;
-}
+unique_ptr < Term > substitute_term ( unique_ptr < Term > t );
+
 
 
 
@@ -165,6 +132,16 @@ const Variable * substitute_const ( const Variable * var )
 //------------------------------------//
 // Term                               //
 //------------------------------------//
+
+void substitute_variables ( Leaf & lf )
+{
+	if ( lf.leaf_type() == Leaf::LeafType::VariableReference )
+	{
+		VariableReference & vr = ( VariableReference & ) lf;
+		if ( vr.variable().user_data )
+			vr.substitute ( * ( Variable * )vr.variable().user_data );
+	}
+}
 
 void substitute_variables ( MinusTerm & mt )
 {
@@ -198,6 +175,12 @@ void substitute_variables ( Term & t )
 		case Term::TermType::ArithmeticOperation:
 			return substitute_variables ( ( ArithmeticOperation & ) t );
 	}
+}
+
+unique_ptr < Term > substitute_term ( unique_ptr < Term > t )
+{
+	substitute_variables ( *t );
+	return t;
 }
 
 //------------------------------------//
@@ -321,15 +304,16 @@ void transfer_to ( BasicNts & bn, Variable & v, const string & prefix )
 	// Append NTS name to annotation 
 	AnnotString * as = find_origin ( cl->annotations );
 	if ( !as )
-		throw logic_error ( "Precondition failed: missing 'origin' annotation" );
+		as = new AnnotString ( "origin", prefix + v.name );
+	else
+		as->value = prefix + as->value;
 
-	string new_origin = prefix + as->value();
-	as->value() = move ( new_origin );		
+	cl->annotations.push_back ( as );
 }
 
 void transfer_to ( BasicNts & bn, State & s, const string & prefix )
 {
-	State * cl = new State ( s.name() );
+	State * cl = new State ( s.name );
 	s.user_data = cl;
 	cl->insert_to ( bn );
 
@@ -338,16 +322,18 @@ void transfer_to ( BasicNts & bn, State & s, const string & prefix )
 
 	AnnotString * as = find_origin ( cl->annotations );
 	if ( !as )
-		throw logic_error ( "Precondition failed: Missing 'origin' annotation" );
+		as = new AnnotString ( "origin", prefix + s.name );
+	else
+		as->value = prefix + as->value;
 
-	string new_origin = prefix + as->value();
-	as->value() = move ( new_origin );
+	cl->annotations.push_back ( as );
 }
 
 class Inliner
 {
 	private:
 		BasicNts & _bn;
+		unsigned int _first_var_id;
 		unordered_set < BasicNts * > _dests;
 
 		void transfer_transition ( Transition & t );
@@ -355,12 +341,18 @@ class Inliner
 		void add_initial_final_states ( Transition & t);
 
 	public:
-		Inliner ( BasicNts & bn ) : _bn ( bn ) { ; }
+		Inliner ( BasicNts & bn, unsigned int first_var_id ) :
+			_bn ( bn ),
+			_first_var_id ( first_var_id )
+		{
+			;
+		}
 
 		void find_destionation_ntses();
 		void create_shadow_variables();
 		void inline_call_transitions();
 		void clear_user_pointers();		
+		void normalize_names();
 };
 
 /**
@@ -401,9 +393,12 @@ void Inliner::transfer_transition ( Transition & t )
 	t2->insert_to ( _bn );
 }
 
+/**
+ * @pre: each state in destination must point to corresponding state in caller
+ */
 void Inliner::add_initial_final_states ( Transition & t )
 {
-	BasicNts & dest = ( ( CallTransitionRule & ) t ).dest();
+	BasicNts & dest = ( ( CallTransitionRule & ) t.rule() ).dest();
 
 	for ( State *s : dest.states() )
 	{
@@ -413,7 +408,8 @@ void Inliner::add_initial_final_states ( Transition & t )
 				std::make_unique < FormulaTransitionRule> (
 					std::make_unique < Havoc > ()
 				),
-				t.from(), *s
+				t.from(),
+				*static_cast < State * > ( s->user_data )
 			);
 			t_init->insert_to ( _bn );
 		}
@@ -424,7 +420,8 @@ void Inliner::add_initial_final_states ( Transition & t )
 				std::make_unique < FormulaTransitionRule > (
 					std::make_unique < Havoc > ()
 				),
-				*s, t.to()
+				*static_cast < State * > ( s->user_data ),
+				t.to()
 			);
 			t_fin->insert_to ( _bn );
 		}
@@ -447,7 +444,7 @@ void Inliner::inline_call_transition ( Transition & t, unsigned int id )
 	BasicNts & dest = ctr.dest();
 
 	// Copy states
-	string prefix = _bn.name() + ":" + to_string ( id ) + ":";
+	string prefix = _bn.name + ":" + to_string ( id ) + ":";
 	for ( State * s : dest.states() )
 	{
 		transfer_to ( _bn, *s, prefix );
@@ -471,9 +468,13 @@ void Inliner::inline_call_transition ( Transition & t, unsigned int id )
 
 void Inliner::find_destionation_ntses()
 {
-	for ( auto & i : _bn.callees() )
+	for ( Transition * t : _bn.transitions() )
 	{
-		_dests.insert ( & i.dest() );
+		if ( t->rule().kind() != TransitionRule::Kind::Call )
+			continue;
+
+		CallTransitionRule & ctr = ( CallTransitionRule &) t->rule();
+		_dests.insert ( & ctr.dest() );
 	}
 }
 
@@ -481,7 +482,7 @@ void Inliner::create_shadow_variables()
 {
 	for ( BasicNts * b : _dests )
 	{
-		string prefix = b->name() + "::";
+		string prefix = b->name + "::";
 
 		for ( Variable * v : b->variables() )
 			transfer_to ( _bn, *v,  prefix );
@@ -498,13 +499,51 @@ void Inliner::create_shadow_variables()
 void Inliner::inline_call_transitions()
 {
 	unsigned int id = 0;
-	for ( Transition * t : _bn.transitions() )
+	for ( auto it = _bn.transitions().begin();
+			it != _bn.transitions().end();
+			)
 	{
+		Transition *t = *it;
+		it++;
+
 		if ( t->rule().kind() != TransitionRule::Kind::Call )
 			continue;
 
+		// Unlink && delete
 		inline_call_transition ( *t, id );
+		t->remove_from_parent();
+		delete t;
+		
 		id++;
+	}
+}
+
+void Inliner::normalize_names()
+{
+	unsigned int st_id = 0;
+	for ( State *s : _bn.states() )
+	{
+		s->name = string ( "st_" ) + to_string ( st_id );
+		st_id++;
+	}
+
+	unsigned int var_id = _first_var_id;
+	for ( Variable *v : _bn.variables() )
+	{
+		v->name = string ( "var_" ) + to_string ( var_id );
+		var_id++;
+	}
+
+	for ( Variable * v : _bn.params_in() )
+	{
+		v->name = string ( "var_" ) + to_string ( var_id );
+		var_id++;
+	}
+
+	for ( Variable * v : _bn.params_out() )
+	{
+		v->name = string ( "var_" ) + to_string ( var_id );
+		var_id++;
 	}
 }
 
@@ -525,14 +564,12 @@ void Inliner::clear_user_pointers()
  */
 void inline_calls ( BasicNts & bn )
 {
-	Inliner iln ( bn );
+	Inliner iln ( bn, 0 );
 	iln.find_destionation_ntses();
 	iln.create_shadow_variables();
 	iln.inline_call_transitions();
+	iln.normalize_names();
 	iln.clear_user_pointers();
-
-
-	// TODO: normalize names
 }
 
 bool make_inline ( Nts & n )

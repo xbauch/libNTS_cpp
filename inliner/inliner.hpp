@@ -15,6 +15,8 @@
 void substitute_variables ( nts::Formula & f );
 void substitute_variables ( nts::Term & t );
 
+void annotate_with_origin ( nts::BasicNts & bn );
+
 void inline_calls ( nts::BasicNts & bn );
 
 
