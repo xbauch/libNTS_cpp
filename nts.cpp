@@ -59,8 +59,8 @@ void Annotations::print ( ostream & o ) const
 //------------------------------------//
 
 Nts::Nts ( string  name ) :
-	_name ( move ( name ) ),
-	_init ( nullptr       )
+	_init ( nullptr       ),
+	name  ( move ( name ) )
 {
 	;
 }
@@ -82,7 +82,7 @@ Nts::~Nts()
 
 ostream & nts::operator<< ( ostream & o , const Nts & nts )
 {
-	o << "nts " << nts._name << ";\n";
+	o << "nts " << nts.name << ";\n";
 
 	if ( nts._vars.size() > 0 )
 	{
@@ -147,7 +147,7 @@ void Instance::insert_to ( Nts & parent )
 
 ostream & nts::operator<< ( ostream &o , const Instance &i )
 {
-	o << i.function->name() << '[' << i.n << ']';
+	o << i.function->name << '[' << i.n << ']';
 	return o;
 }
 
@@ -157,10 +157,10 @@ ostream & nts::operator<< ( ostream &o , const Instance &i )
 
 State::State ( string name ) :
 	_parent   ( nullptr       ),
-	_name     ( move ( name ) ),
 	_initial  ( false         ),
 	_final    ( false         ),
 	_error    ( false         ),
+	name      ( move ( name ) ),
 	user_data ( nullptr       )
 {
 	;
@@ -168,7 +168,7 @@ State::State ( string name ) :
 
 bool State::operator== ( const State & s ) const
 {
-	return _name == s._name;
+	return name == s.name;
 }
 
 bool State::operator!= ( const State & s ) const
@@ -208,7 +208,7 @@ void State::remove_from_parent ()
 ostream & nts::operator<< ( ostream &o , const State &s )
 {
 	s.annotations.print ( o );
-	o << "\t" << s._name;
+	o << "\t" << s.name;
 	return o;
 }
 
@@ -216,8 +216,8 @@ ostream & nts::operator<< ( ostream &o , const State &s )
 // BasicNts                           //
 //------------------------------------//
 BasicNts::BasicNts ( string name ) :
-	_name     ( move ( name ) ),
 	_parent   ( nullptr       ),
+	name      ( move ( name ) ),
 	user_data ( nullptr       )
 {
 	;
@@ -311,7 +311,7 @@ void BasicNts::print_variables ( std::ostream & o ) const
 template < typename T >
 void ptr_name_print_function ( ostream & o, T * x )
 {
-	o << x->name();
+	o << x->name;
 }
 
 template < typename InputIterator >
@@ -406,7 +406,7 @@ void BasicNts::print_transitions ( std::ostream & o ) const
 std::ostream & nts::operator<< ( std::ostream &o, const BasicNts &bn)
 {
 	bn.annotations.print ( o );
-	o << bn._name << " {\n";
+	o << bn.name << " {\n";
 
 	bn.print_params_in  ( o );
 	bn.print_params_out ( o );
@@ -643,7 +643,7 @@ void Transition::remove_from_parent ()
 ostream & nts::operator<< ( ostream &o, const Transition &t )
 {
 	t.annotations.print ( o );
-	o << t._from.name() << " -> " << t._to.name() << " " << *t._rule;
+	o << t._from.name << " -> " << t._to.name << " " << *t._rule;
 	return o;
 }
 
@@ -813,7 +813,7 @@ namespace
 {
 	ostream & print_variable_name ( ostream &o, const Variable * v )
 	{
-		o << v->name();
+		o << v->name;
 		return o;
 	}
 };
@@ -835,7 +835,7 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 		o << " = ";
 	}
 
-	o << _dest.name() << " ( ";
+	o << _dest.name << " ( ";
 	to_csv ( o, _term_in.cbegin(), _term_in.cend(), ptr_print_function<Term>, ", " );
 	o << " ) }";
 
@@ -848,8 +848,8 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 
 Variable::Variable ( DataType t, string name ) :
 	_type        ( move ( t    ) ),
-	_name        ( move ( name ) ),
 	_parent_list ( nullptr       ),
+	name         ( move ( name ) ),
 	user_data    ( nullptr       )
 {
 
@@ -857,9 +857,9 @@ Variable::Variable ( DataType t, string name ) :
 
 Variable::Variable ( const Variable & orig ) :
 	_type        ( orig._type       ),
-	_name        ( orig._name       ),
 	_parent_list ( nullptr          ),
 	annotations  ( orig.annotations ),
+	name         ( orig.name        ),
 	user_data    ( nullptr          )
 {
 	;
@@ -867,8 +867,9 @@ Variable::Variable ( const Variable & orig ) :
 
 Variable::Variable ( const Variable && old ) :
 	_type        ( move ( old._type        ) ),
-	_name        ( move ( old._name        ) ),
 	_parent_list ( move ( old._parent_list ) ),
+	annotations  ( move ( old.annotations  ) ),
+	name         ( move ( old.name         ) ),
 	user_data    ( move ( old.user_data    ) )
 {
 	if ( _parent_list )
@@ -940,7 +941,7 @@ Variable * Variable::clone() const
 ostream & nts::operator<< ( std::ostream & o, const Variable &v )
 {
 	v.annotations.print ( o );
-	o << v._name;
+	o << v.name;
 	v._type.print_arr ( o );
 	o <<  " : ";
 	v._type.scalar_type().print ( o );
@@ -958,9 +959,9 @@ BitVectorVariable::BitVectorVariable ( string name, unsigned int width ) :
 }
 
 Annotation::Annotation ( string name, Type t ) :
-	_name   ( move ( name ) ),
 	_type   ( move ( t    ) ),
-	_parent ( nullptr       )
+	_parent ( nullptr       ),
+	name    ( move ( name ) )
 {
 	;
 }
@@ -985,7 +986,7 @@ void Annotation::remove_from_parent()
 
 ostream & nts::operator<< ( ostream & o, const Annotation & a )
 {
-	o << "@" << a._name << ":";
+	o << "@" << a.name << ":";
 	a.print ( o );
 	o << ";";
 	return o;
@@ -993,21 +994,21 @@ ostream & nts::operator<< ( ostream & o, const Annotation & a )
 
 AnnotString::AnnotString ( string name, string value ) :
 	Annotation ( move ( name ), Type::String ),
-	_value ( move ( value ) )
+	value      ( move ( value ) )
 {
 	;
 }
 
 AnnotString::AnnotString ( const AnnotString & orig ) :
-	Annotation ( orig.name(), orig.type() ),
-	_value ( orig._value )
+	Annotation ( orig.name, orig.type() ),
+	value      ( orig.value )
 {
 	;
 }
 
 void AnnotString::print ( ostream & o ) const
 {
-	o << "string:\"" << _value << "\"";
+	o << "string:\"" << value << "\"";
 }
 
 AnnotString * AnnotString::clone() const

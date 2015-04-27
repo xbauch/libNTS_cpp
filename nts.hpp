@@ -55,8 +55,6 @@ class Annotations : public std::list < Annotation * >
 class Nts
 {
 	private:
-		std::string _name;
-
 		std::list <Instance *> _instances;
 		friend class Instance;
 
@@ -89,8 +87,6 @@ class Nts
 			return _vars;
 		}
 
-		const std::string & name() const { return _name; }
-
 		std::unique_ptr < Formula > & init() { return _init; }
 		std::unique_ptr < Formula > const & init() const { return _init; }
 
@@ -99,6 +95,7 @@ class Nts
 
 		// FIXME: annotations are not printed
 		Annotations annotations;
+		std::string name;
 };
 
 class Instance
@@ -136,8 +133,6 @@ class State;
 class BasicNts
 {
 	private:
-		std::string _name;
-
 		using Basics = decltype(Nts::_basics);
 
 		Nts * _parent;
@@ -189,8 +184,6 @@ class BasicNts
 
 		~BasicNts();
 
-		const std::string & name() const { return _name; }
-
 		const Transitions & transitions() { return _transitions; }
 
 		Callers callers();
@@ -209,10 +202,10 @@ class BasicNts
 
 		const States & states() const { return _states; }
 
-		Annotations annotations;
-
 		friend std::ostream & operator<< ( std::ostream &, const BasicNts &);
 
+		Annotations annotations;
+		std::string name;
 		void * user_data;
 };
 
@@ -221,8 +214,6 @@ class State
 	private:
 		BasicNts         * _parent;
 		BasicNts::States::iterator   _pos;
-
-		std::string _name;
 
 		friend class Transition;
 		using Transitions = std::list < Transition * >;
@@ -240,8 +231,6 @@ class State
 		State ( const State && old ) = delete;
 
 		~State() = default;
-
-		const std::string name() const { return _name; }
 
 		const bool & is_initial() const { return _initial; }
 		      bool & is_initial()       { return _initial; }
@@ -263,10 +252,10 @@ class State
 		const Transitions & incoming() const { return _incoming_tr; }
 		const Transitions & outgoing() const { return _outgoing_tr; }
 
-		Annotations annotations;
-
 		friend std::ostream & operator<< ( std::ostream &, const State & );
 
+		Annotations annotations;
+		std::string name;
 		void * user_data;
 };
 
@@ -277,7 +266,6 @@ class Variable
 {
 	private:
 		DataType    _type;
-		std::string _name;
 
 		// If variable has a parent, then _pos is valid iterator
 		// and points to position of this variable in parent's list
@@ -312,16 +300,14 @@ class Variable
 		void remove_from_parent();
 
 	
-		const std::string & name() const { return _name; }
 		const DataType & type() const { return _type; }
 
 		Variable * clone() const;
 
-		Annotations annotations;
-
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
 
-
+		Annotations annotations;
+		std::string name;
 		void * user_data;
 };
 
@@ -589,7 +575,6 @@ class Annotation
 		};
 
 	private:
-		std::string _name;
 		Type        _type;
 
 		Annotations           * _parent;
@@ -608,19 +593,17 @@ class Annotation
 		Annotations * parent() const { return _parent; }
 
 		Type type() const { return _type; }
-		const std::string & name() const { return _name; }
-		std::string & name() { return _name; }
+
 
 		friend std::ostream & operator<< ( std::ostream & o, const Annotation & );
 
 		virtual Annotation * clone() const = 0;
+
+		std::string name;
 };
 
 class AnnotString : public Annotation
 {
-	private:
-		std::string _value;
-
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
@@ -630,10 +613,9 @@ class AnnotString : public Annotation
 
 		virtual ~AnnotString() = default;
 
-		const std::string & value() const { return _value; }
-		std::string & value() { return _value; }
-
 		virtual AnnotString * clone() const override;
+
+		std::string value;
 };
 
 

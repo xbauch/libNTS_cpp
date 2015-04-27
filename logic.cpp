@@ -387,7 +387,7 @@ ostream & nts::operator<< ( ostream & o, const QuantifiedVariableList & qvl )
 {
 	auto print_name = [] ( ostream & o, const Variable *v ) 
 	{
-		o << v->name();
+		o << v->name;
 	};
 
 	o << to_str ( qvl._q ) << " ";
@@ -503,7 +503,7 @@ void Havoc::print ( ostream & o ) const
 	o << "havoc ( ";
 	to_csv ( o, variables.cbegin(), variables.cend(),
 			[] ( ostream & o, const Variable *var ) {
-				o << var->name();
+				o << var->name;
 			}, ", " );
 	o << " )";
 }
@@ -674,7 +674,7 @@ ArrayWrite * ArrayWrite::clone() const
 
 void ArrayWrite::print ( ostream & o ) const
 {
-	o << _arr->name() << "'";
+	o << _arr->name << "'";
 	for ( const Term * t : _indices_1 )
 		o << "[" << *t << "]";
 
@@ -951,7 +951,7 @@ VariableReference * VariableReference::clone() const
 
 void VariableReference::print ( ostream & o ) const
 {
-	o << _var->name();
+	o << _var->name;
 	if ( _primed )
 		o << "'";
 }
