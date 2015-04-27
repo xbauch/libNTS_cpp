@@ -250,9 +250,9 @@ Havoc & havoc ()
 	return * new Havoc ();
 }
 
-Havoc & havoc ( std::initializer_list < Variable *> vars )
+Havoc & havoc ( std::vector < Variable *> vars )
 {
-	return * new Havoc ( vars );
+	return * new Havoc ( move ( vars ) );
 }
 
 VariableReference & CURR ( const Variable & var )
