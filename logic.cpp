@@ -956,4 +956,11 @@ void VariableReference::print ( ostream & o ) const
 		o << "'";
 }
 
+void VariableReference::substitute ( const Variable & var )
+{
+	// It is enough for var to be coercible to _var
+	if ( var.type() != _var->type() )
+		throw TypeError();
+	_var = &var;
+}
 

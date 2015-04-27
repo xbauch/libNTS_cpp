@@ -580,6 +580,8 @@ class VariableReference : public Leaf
 		bool primed() const { return _primed; }
 		const Variable & variable () const { return *_var; }
 
+		void substitute ( const Variable & var );
+
 		virtual VariableReference * clone() const override;
 };
 
