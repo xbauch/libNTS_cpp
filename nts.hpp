@@ -55,17 +55,18 @@ class Annotations : public std::list < Annotation * >
 class Nts
 {
 	private:
-		std::list <Instance *> _instances;
+		using Instances = std::list < Instance * >;
+		Instances _instances;
 		friend class Instance;
 
-		std::list <BasicNts *> _basics;
+		using BasicNtses = std::list < BasicNts * >;
+		BasicNtses _basics;
 		friend class BasicNts;
 
 		// Global variables
-		std::list <Variable *> _vars;
+		using Variables = std::list < Variable * >;
+		Variables _vars;
 		friend class Variable;
-
-		std::unique_ptr < Formula > _init;
 
 	public:
 		explicit Nts ( std::string name );
@@ -77,22 +78,24 @@ class Nts
 
 		~Nts();
 
-		const std::list <BasicNts *> & basic_ntses() const
+		const BasicNtses & basic_ntses() const
 		{
 			return _basics;
 		}
 
-		const std::list < Variable * > & variables() const
+		const Variables & variables() const
 		{
 			return _vars;
 		}
 
-		std::unique_ptr < Formula > & init() { return _init; }
-		std::unique_ptr < Formula > const & init() const { return _init; }
-
+		const Instances & instances() const
+		{
+			return _instances;
+		}
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
+		std::unique_ptr < Formula > initial_formula;
 		// FIXME: annotations are not printed
 		Annotations annotations;
 		std::string name;

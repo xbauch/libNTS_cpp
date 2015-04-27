@@ -59,7 +59,7 @@ void Annotations::print ( ostream & o ) const
 //------------------------------------//
 
 Nts::Nts ( string  name ) :
-	_init ( nullptr       ),
+	initial_formula ( nullptr ),
 	name  ( move ( name ) )
 {
 	;
@@ -90,9 +90,9 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 				ptr_print_function<Variable>, "\n" ) << "\n";
 	}
 
-	if ( nts._init )
+	if ( nts.initial_formula )
 	{
-		o << "init\t" << *nts._init << ";\n";
+		o << "init\t" << *nts.initial_formula << ";\n";
 	}
 
 	if ( nts._instances.size() > 0 )
