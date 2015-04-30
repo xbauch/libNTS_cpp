@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
-project(libNTS_cpp)
+cmake_minimum_required(VERSION 3.0)
+project ( libNTS_cpp VERSION 0.1)
+set ( project_name_lc "libnts_cpp" )
+
+# This CMakeLists was inspired by
+# https://github.com/forexample/package-example/blob/master/Foo/CMakeLists.txt
 
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
 
@@ -18,35 +22,63 @@ add_executable ( ntslib_test
 
 target_link_libraries ( ntslib_test NTS_cpp )
 
-install (
+set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+set(include_install_dir "include")
+
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# Configuration
+set(version_config "${generated_dir}/${project_name_lc}-configVersion.cmake")
+set(project_config "${generated_dir}/${project_name_lc}-config.cmake")
+set(targets_export_name "${project_name_lc}-targets")
+#set(namespace "${PROJECT_NAME}::")
+
+include(CMakePackageConfigHelpers)
+
+# Configure '<PROJECT-NAME>ConfigVersion.cmake'
+# Note: PROJECT_VERSION is used as a VERSION
+write_basic_package_version_file(
+	"${version_config}"
+	COMPATIBILITY AnyNewerVersion
+)
+
+configure_file("Config.cmake.in" "${project_config}" @ONLY)
+
+install(
+	TARGETS NTS_cpp
+	EXPORT "${targets_export_name}"
+	LIBRARY DESTINATION "lib"
+	ARCHIVE DESTINATION "lib"
+	RUNTIME DESTINATION "bin"
+	INCLUDES DESTINATION "${include_install_dir}"
+)
+
+# Install all header files
+install(
 	FILES
 		"nts.hpp"
-		"data_types.hpp"
 		"logic.hpp"
 		"sugar.hpp"
+		"data_types.hpp"
+
 	DESTINATION
-		"include"
+		"${include_install_dir}/libNTS"
 )
 
-install (
-	TARGETS
-		"NTS_cpp"
-	DESTINATION
-		"lib"
-	EXPORT
-		"NTS_cpp-targets"
-)
-
-install (
-	EXPORT
-		"NTS_cpp-targets"
-	DESTINATION
-		"lib/cmake/NTS_cpp"
-)
-
-install (
+# Configuration files
+install(
 	FILES
-		"nts_cpp-config.cmake"
+		"${project_config}"
+		"${version_config}"
 	DESTINATION
-		"lib/cmake/NTS_cpp"
+		"${config_install_dir}"
+)
+
+install(
+	EXPORT
+		"${targets_export_name}"
+#	NAMESPACE
+#		"${namespace}"
+	DESTINATION
+		"${config_install_dir}"
 )
