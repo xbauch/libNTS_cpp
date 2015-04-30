@@ -2,8 +2,8 @@
 #define NTS_INLINER_HPP_
 #pragma once
 
-#include <libNTS/logic.hpp>
-#include <libNTS/nts.hpp>
+#include "logic.hpp"
+#include "nts.hpp"
 
 /**
  * @brief Substitute variables inside formula with their shadow variables.

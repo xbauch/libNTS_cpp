@@ -14,6 +14,7 @@ add_library ( NTS_cpp SHARED
 	"nts.cpp"
 	"logic.cpp"
 	"sugar.cpp"
+	"inliner.cpp"
 )
 
 add_executable ( ntslib_test
@@ -60,6 +61,7 @@ install(
 		"logic.hpp"
 		"sugar.hpp"
 		"data_types.hpp"
+		"inliner.hpp"
 
 	DESTINATION
 		"${include_install_dir}/libNTS"

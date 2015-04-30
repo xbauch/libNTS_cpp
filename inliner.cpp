@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <libNTS/nts.hpp>
-#include <libNTS/logic.hpp>
+#include "nts.hpp"
+#include "logic.hpp"
 
 using namespace nts;
 
