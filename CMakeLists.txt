@@ -17,3 +17,29 @@ add_executable ( ntslib_test
 	"test.cpp"
 )
 target_link_libraries ( ntslib_test NTS_cpp )
+
+install (
+	FILES
+		"nts.hpp"
+		"data_types.hpp"
+		"logic.hpp"
+		"sugar.hpp"
+	DESTINATION
+		"include"
+)
+
+install (
+	TARGETS
+		"NTS_cpp"
+	DESTINATION
+		"lib"
+	EXPORT
+		"NTS_cpp_targets"
+)
+
+install (
+	EXPORT
+		"NTS_cpp_targets"
+	DESTINATION
+		"lib/cmake/NTS_cpp"
+)
