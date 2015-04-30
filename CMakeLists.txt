@@ -3,8 +3,7 @@ project(libNTS_cpp)
 
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
 
-set ( CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Wextra")
-
+list ( APPEND CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra")
 
 add_library ( NTS_cpp SHARED
 	"data_types.cpp"
@@ -16,6 +15,7 @@ add_library ( NTS_cpp SHARED
 add_executable ( ntslib_test
 	"test.cpp"
 )
+
 target_link_libraries ( ntslib_test NTS_cpp )
 
 install (
@@ -34,12 +34,19 @@ install (
 	DESTINATION
 		"lib"
 	EXPORT
-		"NTS_cpp_targets"
+		"NTS_cpp-targets"
 )
 
 install (
 	EXPORT
-		"NTS_cpp_targets"
+		"NTS_cpp-targets"
+	DESTINATION
+		"lib/cmake/NTS_cpp"
+)
+
+install (
+	FILES
+		"nts_cpp-config.cmake"
 	DESTINATION
 		"lib/cmake/NTS_cpp"
 )
