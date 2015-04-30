@@ -578,38 +578,6 @@ class VariableReference : public Leaf
 		virtual VariableReference * clone() const override;
 };
 
-#if 0
-class Formula
-{
-	public:
-		Formula();
-
-		class Variables;
-		class PrimedVariables;
-
-		Variables variables() const;
-		PrimedVariables primed_variables() const;
-};
-
-class Formula::Variables
-{
-	public:
-		class iterator;
-
-		iterator begin();
-		iterator end();
-};
-
-class Formula::PrimedVariables
-{
-	public:
-		class iterator;
-
-		iterator begin();
-		iterator end();
-};
-#endif
-
 }
 
 #endif // NTS_LOGIC_HPP_
