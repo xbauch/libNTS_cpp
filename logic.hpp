@@ -203,22 +203,20 @@ class QuantifiedType
 class QuantifiedVariableList
 {
 	private:
-		Quantifier               _q;
 		QuantifiedType           _qtype;
 		std::list < Variable * > _vars;
 
 		friend class Variable;
 
 	public:
-		QuantifiedVariableList ( Quantifier q, const QuantifiedType &  qtype );
-		QuantifiedVariableList ( Quantifier q, const QuantifiedType && qtype );
+		Quantifier quantifier;
+
+		QuantifiedVariableList ( Quantifier q, QuantifiedType qtype );
 		QuantifiedVariableList ( const QuantifiedVariableList & orig );
 		QuantifiedVariableList ( QuantifiedVariableList && old );
 
 		~QuantifiedVariableList();
 
-		Quantifier                  & quantifier() { return _q; }
-		const Quantifier            & quantifier() const { return _q; }
 		const QuantifiedType        & qtype()      const { return _qtype; }
 		const std::list<Variable *> & variables()  const { return _vars; }
 
@@ -229,29 +227,24 @@ class QuantifiedVariableList
 class QuantifiedFormula : public Formula
 {
 	private:
-		QuantifiedVariableList   _qvlist;
 		std::unique_ptr<Formula> _f;
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		QuantifiedFormula (
-				Quantifier                 q,
-				const QuantifiedType     & type,
-				std::unique_ptr<Formula>   f    );
+		QuantifiedVariableList list;
 
 		QuantifiedFormula (
-				Quantifier                   q,
-				const QuantifiedType     &&  type,
-				std::unique_ptr<Formula>     f    );
+				Quantifier               q,
+				QuantifiedType           type,
+				std::unique_ptr<Formula> f    );
 
 		QuantifiedFormula ( const QuantifiedFormula & orig );
 		QuantifiedFormula ( QuantifiedFormula && old );
 
 		virtual ~QuantifiedFormula() = default;
 
-		const QuantifiedVariableList & list() const { return _qvlist; }
 		Formula & formula() const { return *_f; }
 
 		virtual QuantifiedFormula * clone() const override;

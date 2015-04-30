@@ -328,31 +328,18 @@ ostream & nts::operator<< ( ostream & o, const QuantifiedType & qt )
 
 QuantifiedVariableList::QuantifiedVariableList
 (
-		Quantifier             q,
-		const QuantifiedType & type
+		Quantifier     q,
+		QuantifiedType type
 ):
-	_q     ( q    ),
-	_qtype ( type )
+	_qtype     ( move ( type ) ),
+	quantifier ( q )
 
 {
 	;
 }
-
-QuantifiedVariableList::QuantifiedVariableList
-(
-		Quantifier              q,
-		const QuantifiedType && type
-):
-	_q     ( q    ),
-	_qtype ( type )
-
-{
-	;
-}
-
 QuantifiedVariableList::QuantifiedVariableList ( const QuantifiedVariableList & orig ) :
-	_q     ( orig._q     ),
-	_qtype ( orig._qtype )
+	_qtype     ( orig._qtype     ),
+	quantifier ( orig.quantifier )
 {
 	for ( auto * v : orig._vars )
 	{
@@ -362,8 +349,8 @@ QuantifiedVariableList::QuantifiedVariableList ( const QuantifiedVariableList & 
 }
 
 QuantifiedVariableList::QuantifiedVariableList ( QuantifiedVariableList && old ) :
-	_q     ( move ( old._q     ) ),
-	_qtype ( move ( old._qtype ) )
+	_qtype     ( move ( old._qtype     ) ),
+	quantifier ( move ( old.quantifier ) )
 {
 	_vars = move ( old._vars );
 	old._vars.clear();
@@ -390,7 +377,7 @@ ostream & nts::operator<< ( ostream & o, const QuantifiedVariableList & qvl )
 		o << v->name;
 	};
 
-	o << to_str ( qvl._q ) << " ";
+	o << to_str ( qvl.quantifier ) << " ";
 	to_csv ( o, qvl._vars.cbegin(), qvl._vars.cend(), print_name, ", " );
 	o << " : " << qvl._qtype;
 
@@ -404,38 +391,28 @@ ostream & nts::operator<< ( ostream & o, const QuantifiedVariableList & qvl )
 //------------------------------------//
 
 QuantifiedFormula::QuantifiedFormula (
-				Quantifier              q,
-				const QuantifiedType &  type,
-				unique_ptr<Formula>     f    ) :
+				Quantifier          q,
+				QuantifiedType      type,
+				unique_ptr<Formula> f    ) :
 	Formula ( Type::QuantifiedFormula ),
-	_qvlist ( q, type         ),
-	_f      ( move ( f ) )
-{
-	;
-}
+	_f      ( move ( f ) ),
+	list    ( q, move ( type ) )
 
-QuantifiedFormula::QuantifiedFormula (
-				Quantifier              q,
-				const QuantifiedType && type,
-				unique_ptr<Formula>     f    ) :
-	Formula ( Type::QuantifiedFormula ),
-	_qvlist ( q, type         ),
-	_f      ( move ( f ) )
 {
 	;
 }
 
 QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
 	Formula ( Type::QuantifiedFormula ),
-	_qvlist ( orig._qvlist )
+	list ( orig.list )
 {
 	_f = unique_ptr<Formula> ( orig._f->clone() );
 }
 
 QuantifiedFormula::QuantifiedFormula ( QuantifiedFormula && old ) :
 	Formula ( Type::QuantifiedFormula ),
-	_qvlist ( move ( old._qvlist ) ),
-	_f      ( move ( old._f      ) )
+	_f   ( move ( old._f   ) ),
+	list ( move ( old.list ) )
 {
 	;
 }
@@ -447,7 +424,7 @@ QuantifiedFormula * QuantifiedFormula::clone() const
 
 void QuantifiedFormula::print ( ostream & o ) const
 {
-	o << _qvlist << " . " << *_f;
+	o << list << " . " << *_f;
 }
 
 //------------------------------------//
