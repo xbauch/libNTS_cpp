@@ -29,8 +29,6 @@
  * 
  */
 
-// TODO someone should destroy annotations
-
 namespace nts
 {
 
@@ -66,6 +64,7 @@ class Nts
 		// Global variables
 		using Variables = std::list < Variable * >;
 		Variables _vars;
+		Variables _pars;
 		friend class Variable;
 
 	public:
@@ -86,6 +85,11 @@ class Nts
 		const Variables & variables() const
 		{
 			return _vars;
+		}
+
+		const Variables & parameters() const
+		{
+			return _pars;
 		}
 
 		const Instances & instances() const
@@ -162,6 +166,7 @@ class BasicNts
 		Variables _variables;
 		Variables _params_in;
 		Variables _params_out;
+		Variables _pars;
 
 		friend class State;
 		// Increases after each state_add()
@@ -294,6 +299,10 @@ class Variable
 		// Insert it as normal variable
 		void insert_to ( Nts & n );
 		void insert_to ( BasicNts & nb );
+
+		// Insert it as a parameter of execution
+		void insert_par ( Nts & n );
+		void insert_par ( BasicNts & bn );
 
 		// Insert it as input / output parameter
 		void insert_param_in_to  ( BasicNts & nb );

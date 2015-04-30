@@ -907,6 +907,16 @@ void Variable::insert_to ( BasicNts & nb )
 	insert_to ( nb._variables, nb._variables.end() );
 }
 
+void Variable::insert_par ( Nts & n )
+{
+	insert_to ( n._pars, n._pars.end() );
+}
+
+void Variable::insert_par ( BasicNts & bn )
+{
+	insert_to ( bn._pars, bn._pars.end() );
+}
+
 void Variable::insert_param_in_to ( BasicNts & nb )
 {
 	insert_to ( nb._params_in, nb._params_in.end() );
