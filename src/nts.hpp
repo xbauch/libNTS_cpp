@@ -47,6 +47,8 @@ class Annotations : public std::list < Annotation * >
 		Annotations ( const Annotations & orig );
 		~Annotations();
 
+		Annotations & operator= ( const Annotations & orig );
+
 		void print ( std::ostream & o ) const;
 };
 

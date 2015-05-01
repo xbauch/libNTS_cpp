@@ -29,7 +29,8 @@ using std::transform;
 // Annotations                        //
 //------------------------------------//
 
-Annotations::Annotations ( const Annotations & orig )
+Annotations::Annotations ( const Annotations & orig ) :
+	list < Annotation * > {}
 {
 	for ( Annotation * a : orig )
 	{
@@ -44,6 +45,23 @@ Annotations::~Annotations()
 	{
 		delete a;
 	}
+}
+
+Annotations & Annotations::operator= ( const Annotations & orig )
+{
+	// Delete what we have
+	for ( Annotation * a : *this )
+		delete a;
+
+	this->clear();
+
+	for ( const Annotation * a : orig )
+	{
+		Annotation * cl = a->clone();
+		cl->insert_to ( *this );
+	}
+
+	return *this;
 }
 
 void Annotations::print ( ostream & o ) const

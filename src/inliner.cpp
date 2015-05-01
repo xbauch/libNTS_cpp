@@ -19,30 +19,10 @@ using std::logic_error;
 using std::unique_ptr;
 using std::to_string;
 
-/*
- * T must provide member access to 'annotations ( list of annotations)'
- * and to 'std::string name() const'
- */
-template < typename T >
-void annotate_with_origin ( T & x )
-{
-	Annotation * a = new AnnotString ( "origin", x.name );
-	a->insert_to ( x.annotations );
-}
-
-void annotate_with_origin ( BasicNts & bn )
-{
-	for ( Variable *v : bn.variables() )
-		annotate_with_origin ( *v );
-
-	for ( State *s : bn.states() )
-		annotate_with_origin ( *s );
-}
-
 
 AnnotString * find_origin ( Annotations & ants )
 {
-	Annotations::iterator it = find_if ( ants.begin(), ants.end(), 
+	Annotations::iterator it = find_if ( ants.begin(), ants.end(),
 			[] ( const Annotation *a) -> bool
 			{
 				return a->name == "origin" && a->type() == Annotation::Type::String;
@@ -54,6 +34,43 @@ AnnotString * find_origin ( Annotations & ants )
 
 	return static_cast < AnnotString * > ( *it );
 }
+
+/*
+ * T must provide member access to 'annotations ( list of annotations)'
+ * and to 'std::string name() const'
+ */
+template < typename T >
+void annotate_with_origin ( T & x )
+{
+	AnnotString * as = find_origin ( x.annotations );
+	if ( as )
+		return;
+
+	as = new AnnotString ( "origin", x.name );
+	as->insert_to ( x.annotations );
+}
+
+void annotate_with_origin ( BasicNts & bn )
+{
+	for ( Variable *v : bn.variables() )
+		annotate_with_origin ( *v );
+
+	for ( State *s : bn.states() )
+		annotate_with_origin ( *s );
+}
+
+void annotate_with_origin ( Nts & n )
+{
+	for ( Variable * v : n.variables() )
+		annotate_with_origin ( *v );
+
+	for ( Variable *v : n.parameters() )
+		annotate_with_origin ( *v );
+
+	for ( BasicNts *bn : n.basic_ntses() )
+		annotate_with_origin ( *bn );
+}
+
 
 void substitute_variables ( AtomicProposition & ap );
 void substitute_variables ( Term & t );
@@ -251,7 +268,9 @@ void substitute_variables ( Formula & f )
 
 /**
  * @brief copies 'v' to 'bn' an makes v.user_pointer point to the copy
- * @pre v must have 'origin' annotation. @see annotate_variable()
+ * @pre v may have 'origin' annotation, but it is not neccessary.
+ *      For example, if variable is an function argument,
+ *      it does not have annotations.
  */
 void transfer_to ( BasicNts & bn, Variable & v, const string & prefix )
 {
@@ -263,29 +282,32 @@ void transfer_to ( BasicNts & bn, Variable & v, const string & prefix )
 	// Append NTS name to annotation 
 	AnnotString * as = find_origin ( cl->annotations );
 	if ( !as )
+	{
 		as = new AnnotString ( "origin", prefix + v.name );
+		as->insert_to ( cl->annotations );
+	}
 	else
 		as->value = prefix + as->value;
-
-	cl->annotations.push_back ( as );
 }
 
+/**
+ * @pre R1 given state must have 'origin' annotation
+ */
 void transfer_to ( BasicNts & bn, State & s, const string & prefix )
 {
 	State * cl = new State ( s.name );
 	s.user_data = cl;
 	cl->insert_to ( bn );
+	cl->annotations = s.annotations;
 
 	if ( s.is_error() )
 		cl->is_error() = true;
 
 	AnnotString * as = find_origin ( cl->annotations );
 	if ( !as )
-		as = new AnnotString ( "origin", prefix + s.name );
-	else
-		as->value = prefix + as->value;
+		throw logic_error ( "Precondition R1 failed: no 'origin' annotation" );
 
-	cl->annotations.push_back ( as );
+	as->value = prefix + as->value;
 }
 
 class Inliner
@@ -540,26 +562,28 @@ unsigned int inline_calls ( BasicNts & bn, unsigned int first_var_id )
 }
 
 /**
+ * @pre All global variables must have 'origin' annotation
+ * @post All global variables have a prefix "gvar_"
+ */
+void normalize_global_vars ( Nts & nts )
+{
+	unsigned int var_id =  0;
+	for ( Variable * v : nts.variables() )
+		v->name = "gvar_" + to_string ( var_id++ );
+}
+
+/**
  * @pre There is no recursion, neither direct nor indirect.
  */
 void inline_calls_simple ( Nts & nts )
 {
+	annotate_with_origin  ( nts );
+	normalize_global_vars ( nts );
+
+	// Find all BasicNts which are used as an instance
 	unordered_set < BasicNts * > root_ntses;
-
-	// Annotate and rename global variables
-	unsigned int var_id = 0;
-	for ( Variable * v : nts.variables() )
-	{
-		auto * as = new AnnotString ( "origin", move ( v->name ) );
-		v->annotations.push_back ( as );
-		v->name = string ( "gvar_" ) + to_string ( var_id );
-		var_id++;
-	}
-
 	for ( Instance * i : nts.instances() )
-	{
 		root_ntses.insert ( & i->basic_nts() );
-	}
 
 	auto root_ntses_copy = root_ntses;
 
@@ -571,7 +595,7 @@ void inline_calls_simple ( Nts & nts )
 			auto curr = it;
 			it++;
 
-			unsigned int n = inline_calls ( bn, var_id );
+			unsigned int n = inline_calls ( bn, 0 );
 			if ( n <= 0 )
 				root_ntses.erase ( curr );
 		}
@@ -592,8 +616,3 @@ void inline_calls_simple ( Nts & nts )
 	}
 }
 
-bool make_inline ( Nts & n )
-{
-
-	return false;
-}
