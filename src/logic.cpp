@@ -642,7 +642,7 @@ void Relation::set_terms_parent()
 //------------------------------------//
 
 ArrayWrite::ArrayWrite (
-		const Variable & arr,
+		Variable & arr,
 		Terms idxs_1,
 		Terms idxs_2,
 		Terms values ):
@@ -676,6 +676,7 @@ ArrayWrite::ArrayWrite (
 	_values    = move ( values );
 
 	set_terms_parent();
+	set_use();
 }
 
 ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
@@ -696,6 +697,7 @@ ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
 		_values.push_back ( x -> clone() );
 
 	set_terms_parent();
+	set_use();
 }
 
 ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
@@ -707,10 +709,12 @@ ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
 	_values    = move ( old._values    );
 
 	set_terms_parent();
+	set_use();
 }
 
 ArrayWrite::~ArrayWrite()
 {
+	remove_use();
 	for ( const Term * t : _indices_1 )
 		delete t;
 
@@ -719,6 +723,19 @@ ArrayWrite::~ArrayWrite()
 
 	for ( const Term * t : _values )
 		delete t;
+}
+
+void ArrayWrite::set_use()
+{
+	_var_use = _arr->_users.insert (
+			_arr->_users.cend(),
+			VariableUser ( *this )
+	);
+}
+
+void ArrayWrite::remove_use()
+{
+	_arr->_users.erase ( _var_use );
 }
 
 ArrayWrite * ArrayWrite::clone() const
@@ -1053,15 +1070,36 @@ UserConstant * UserConstant::clone() const
 }
 
 //------------------------------------//
+// VariableUser                     //
+//------------------------------------//
+
+VariableUser::VariableUser ( VariableReference & vref )
+{
+	user_ptr.vref = & vref;
+	user_type = UserType::VariableReference;
+}
+
+VariableUser::VariableUser ( ArrayWrite & awr )
+{
+	user_ptr.arr_wr = & awr;
+	user_type = UserType::ArrayWrite;
+}
+
+//------------------------------------//
 // VariableReference                  //
 //------------------------------------//
 
-VariableReference::VariableReference ( const Variable &var, bool primed ) :
+VariableReference::VariableReference ( Variable & var, bool primed ) :
 	Leaf    ( var.type(), LeafType::VariableReference ),
 	_var    ( &var       ),
 	_primed ( primed     )
 {
-	;
+	set_use();
+}
+
+VariableReference::~VariableReference()
+{
+	remove_use();
 }
 
 VariableReference * VariableReference::clone() const
@@ -1076,11 +1114,27 @@ void VariableReference::print ( ostream & o ) const
 		o << "'";
 }
 
-void VariableReference::substitute ( const Variable & var )
+void VariableReference::substitute ( Variable & var )
 {
 	// It is enough for var to be coercible to _var
 	if ( var.type() != _var->type() )
 		throw TypeError();
+
+	remove_use();
 	_var = &var;
+	set_use();
+}
+
+void VariableReference::set_use()
+{
+	_var_use = _var->_users.insert (
+			_var->_users.cend(),
+			VariableUser ( *this )
+	);
+}
+
+void VariableReference::remove_use()
+{
+	_var->_users.erase ( _var_use );
 }
 

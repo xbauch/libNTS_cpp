@@ -293,6 +293,13 @@ struct Example_callees_callers
 		bvvar[1]->insert_param_in_to (  *nb[1] );
 		bvvar[2]->insert_before ( *bvvar[1] );
 
+		// Find all uses of bvvar[0]
+		printf ( "Users of bvvar[0]\n");
+		for ( auto & u : bvvar[0]->users() )
+		{
+			printf ( "user: %p\n", u.user_ptr.raw );
+		}
+
 	}
 
 	// It will automatically destroy everything

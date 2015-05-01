@@ -255,23 +255,23 @@ Havoc & havoc ( std::vector < Variable *> vars )
 	return * new Havoc ( move ( vars ) );
 }
 
-VariableReference & CURR ( const Variable & var )
+VariableReference & CURR ( Variable & var )
 {
 	return * new VariableReference ( var, false );
 }
 
-VariableReference & CURR ( const Variable * var )
+VariableReference & CURR ( Variable * var )
 {
 	return CURR ( *var );
 }
 
 
-VariableReference & NEXT ( const Variable & var )
+VariableReference & NEXT ( Variable & var )
 {
 	return * new VariableReference ( var, true );
 }
 
-VariableReference & NEXT ( const Variable * var )
+VariableReference & NEXT ( Variable * var )
 {
 	return NEXT ( *var );
 }
@@ -333,7 +333,7 @@ ArrayTerm & ArrRead::operator [] ( Term & t )
 	);
 }
 
-ArrWriting::ArrWriting ( const Variable & arr_var, Term & t ) :
+ArrWriting::ArrWriting ( Variable & arr_var, Term & t ) :
 	_arr_var ( arr_var ),
 	_idx     ( & t     )
 {
@@ -356,7 +356,7 @@ ArrayWrite & ArrWriting::operator== ( int value )
 	return operator== ( * new IntConstant ( value ) );
 }
 
-ArrWrite::ArrWrite ( const Variable & arr_var ) :
+ArrWrite::ArrWrite ( Variable & arr_var ) :
 	_arr_var ( arr_var )
 {
 	;

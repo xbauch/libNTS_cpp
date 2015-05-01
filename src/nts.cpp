@@ -1017,6 +1017,10 @@ BitVectorVariable::BitVectorVariable ( string name, unsigned int width ) :
 	;
 }
 
+//------------------------------------//
+// Annotation                         //
+//------------------------------------//
+
 Annotation::Annotation ( string name, Type t ) :
 	_type   ( move ( t    ) ),
 	_parent ( nullptr       ),
@@ -1050,6 +1054,10 @@ ostream & nts::operator<< ( ostream & o, const Annotation & a )
 	o << ";";
 	return o;
 }
+
+//------------------------------------//
+// AnnotString                        //
+//------------------------------------//
 
 AnnotString::AnnotString ( string name, string value ) :
 	Annotation ( move ( name ), Type::String ),

@@ -29,7 +29,9 @@ class Formula;
 class FormulaTransitionRule;
 class CallTransitionRule;
 class QuantifiedType;
-
+class VariableReference;
+class ArrayWrite;
+class QuantifiedVariableList;
 
 enum class BoolOp
 {
@@ -62,6 +64,29 @@ enum class Quantifier
 {
 	Forall,
 	Exists
+};
+
+// Who uses this variable
+struct VariableUser
+{
+	enum class UserType
+	{
+		VariableReference,
+		ArrayWrite,
+	};
+
+	union UserPtr
+	{
+		void              * raw;
+		VariableReference * vref;
+		ArrayWrite        * arr_wr;
+	};
+
+	UserType user_type;
+	UserPtr  user_ptr;
+
+	VariableUser ( VariableReference & vref );
+	VariableUser ( ArrayWrite & arr_wr );
 };
 
 class Term
@@ -427,7 +452,8 @@ class ArrayWrite : public AtomicProposition
 		//                |
 		// _indices_2 ----+
 		//
-		const Variable * _arr;
+		Variable * _arr;
+		std::list < VariableUser > :: iterator _var_use;
 
 		using Terms = std::vector < Term * >;
 
@@ -436,12 +462,14 @@ class ArrayWrite : public AtomicProposition
 		Terms _values;
 
 		void set_terms_parent();
+		void set_use();
+		void remove_use();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		ArrayWrite ( const Variable & arr, Terms idxs_1, Terms idxs_2, Terms values );
+		ArrayWrite ( Variable & arr, Terms idxs_1, Terms idxs_2, Terms values );
 		ArrayWrite ( const ArrayWrite & orig );
 		ArrayWrite ( ArrayWrite && old );
 		~ArrayWrite();
@@ -641,20 +669,26 @@ class UserConstant : public Constant
 class VariableReference : public Leaf
 {
 	private:
-		const Variable * _var;
+		Variable * _var;
+		std::list < VariableUser > :: iterator _var_use;
+
 		const bool       _primed;
+
+		void set_use();
+		void remove_use();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		VariableReference ( const Variable &var, bool primed );
-		virtual ~VariableReference() = default;
+		VariableReference ( Variable & var, bool primed );
+		virtual ~VariableReference();
 
 		bool primed() const { return _primed; }
 		const Variable & variable () const { return *_var; }
+		Variable & variable() { return *_var; }
 
-		void substitute ( const Variable & var );
+		void substitute ( Variable & var );
 
 		virtual VariableReference * clone() const override;
 };

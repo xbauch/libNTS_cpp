@@ -273,8 +273,10 @@ class State
 };
 
 class QuantifiedVariableList;
+class VariableReference;
+class ArrayWrite;
 
-
+class VariableUser;
 class Variable
 {
 	private:
@@ -285,6 +287,14 @@ class Variable
 		using Variables = decltype(Nts::_vars);
 		Variables         * _parent_list;
 		Variables::iterator _pos;
+
+
+		friend class nts::VariableReference;
+		friend class nts::ArrayWrite;
+		friend class QuantifiedVariableList;
+
+		using Users = std::list < VariableUser >;
+		Users _users;
 
 
 		// If variable is inserted into a parent, default move of variable
@@ -316,6 +326,7 @@ class Variable
 		void insert_before ( const Variable & var );
 		void remove_from_parent();
 
+		const Users & users () const { return _users; }
 	
 		const DataType & type() const { return _type; }
 

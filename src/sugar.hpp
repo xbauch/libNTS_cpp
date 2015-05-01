@@ -71,13 +71,13 @@ nts::Havoc & havoc ( std::vector < nts::Variable *> vars );
 
 
 // Reading VariableReference
-nts::VariableReference & CURR ( const nts::Variable & var );
-nts::VariableReference & CURR ( const nts::Variable * var );
+nts::VariableReference & CURR ( nts::Variable & var );
+nts::VariableReference & CURR ( nts::Variable * var );
 
 
 // Writing VariableReference
-nts::VariableReference & NEXT ( const nts::Variable & var );
-nts::VariableReference & NEXT ( const nts::Variable * var );
+nts::VariableReference & NEXT ( nts::Variable & var );
+nts::VariableReference & NEXT ( nts::Variable * var );
 
 
 
@@ -119,11 +119,11 @@ class ArrRead
 class ArrWriting
 {
 	private:
-		const nts::Variable & _arr_var;
+		nts::Variable & _arr_var;
 		nts::Term * _idx;
 
 	public:
-		ArrWriting ( const nts::Variable & arr_var, nts::Term & idx );
+		ArrWriting ( nts::Variable & arr_var, nts::Term & idx );
 
 		// Use only once!
 		nts::ArrayWrite & operator== ( nts::Term & value );
@@ -133,10 +133,10 @@ class ArrWriting
 class ArrWrite
 {
 	private:
-		const nts::Variable & _arr_var;
+		nts::Variable & _arr_var;
 
 	public:
-		ArrWrite ( const nts::Variable & arr_var );
+		ArrWrite ( nts::Variable & arr_var );
 
 		ArrWriting operator [] ( nts::Term & idx );
 };
