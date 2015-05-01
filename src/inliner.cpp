@@ -403,7 +403,7 @@ void Inliner::inline_call_transition ( Transition & t, unsigned int id )
 	BasicNts & dest = ctr.dest();
 
 	// Copy states
-	string prefix = _bn.name + ":" + to_string ( id ) + ":";
+	string prefix = dest.name + ":" + to_string ( id ) + ":";
 	for ( State * s : dest.states() )
 	{
 		transfer_to ( _bn, *s, prefix );
