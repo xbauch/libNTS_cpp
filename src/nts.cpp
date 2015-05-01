@@ -102,6 +102,15 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 {
 	o << "nts " << nts.name << ";\n";
 
+#if 0
+	if ( nts._pars.size() > 0 )
+	{
+		o << "par ";
+		to_csv ( o, nts._pars.cbegin(), nts._pars.cend(),
+				ptr_print_function<Variable>, "\n" ) << "\n";
+	}
+#endif
+
 	if ( nts._vars.size() > 0 )
 	{
 		to_csv ( o, nts._vars.cbegin(), nts._vars.cend(),
@@ -140,7 +149,6 @@ Instance::Instance ( BasicNts *basic, unsigned int n )  :
 {
 	;
 }
-
 
 void Instance::remove_from_parent()
 {
@@ -262,6 +270,10 @@ BasicNts::~BasicNts()
 	for ( auto v : _variables )
 		delete v;
 	_variables.clear();
+
+	for ( auto p : _pars )
+		delete p;
+	_pars.clear();
 
 	for ( auto p : _params_in )
 		delete p;
@@ -683,13 +695,20 @@ FormulaTransitionRule::FormulaTransitionRule ( unique_ptr<Formula> f ) :
 	TransitionRule ( Kind::Formula ),
 	_f             ( move ( f )    )
 {
-	;
+	set_formula_parent();
 }
 
 FormulaTransitionRule::FormulaTransitionRule ( const FormulaTransitionRule & orig ) :
 	TransitionRule ( Kind::Formula )
 {
 	_f = unique_ptr < Formula > ( orig._f->clone() );
+	set_formula_parent();
+}
+
+void FormulaTransitionRule::set_formula_parent()
+{
+	_f->_parent_ptr.ftr = this;
+	_f->_parent_type = Formula::ParentType::FormulaTransitionRule;
 }
 
 ostream & FormulaTransitionRule::print ( std::ostream & o ) const
@@ -784,6 +803,7 @@ CallTransitionRule::CallTransitionRule ( BasicNts & dest, Terms in, Variables ou
 
 	_term_in = move ( in  );
 	_var_out = move ( out );
+	set_terms_parent();
 }
 
 CallTransitionRule::CallTransitionRule ( const CallTransitionRule & orig ) :
@@ -796,6 +816,8 @@ CallTransitionRule::CallTransitionRule ( const CallTransitionRule & orig ) :
 
 	for ( const Term * t : orig._term_in )
 		_term_in.push_back ( t->clone() );
+
+	set_terms_parent();
 }
 
 
@@ -825,6 +847,15 @@ void CallTransitionRule::transform_return_variables ( VarTransFunc f )
 				return f ( v1 );
 			}
 	);
+}
+
+void CallTransitionRule::set_terms_parent()
+{
+	for ( Term * t : _term_in )
+	{
+		t->_parent_type = Term::ParentType::CallTransitionRule;
+		t->_parent_ptr.crule = this;
+	}
 }
 
 namespace

@@ -440,6 +440,8 @@ class CallTransitionRule : public TransitionRule
 				const Variables & out
 		);
 
+		void set_terms_parent();
+
 	public:
 		// Becomes an owner of all terms given in 'in :: ArithList'
 		CallTransitionRule ( BasicNts & dest, Terms in, Variables out );
@@ -464,6 +466,7 @@ class FormulaTransitionRule : public TransitionRule
 		std::unique_ptr<Formula> _f;
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
+		void set_formula_parent();
 
 	public:
 		explicit FormulaTransitionRule ( std::unique_ptr<Formula> f );

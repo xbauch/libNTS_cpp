@@ -148,13 +148,15 @@ Term::Term ( DataType t, TermType tt ) :
 	_type  ( move ( t ) ),
 	_term_type ( tt )
 {
-	;
+	_parent_type = Term::ParentType::None;
+	_parent_ptr.raw = nullptr;
 }
 
 Term::Term ( const Term & orig ) :
 	_type  ( orig._type  )
 {
-	;
+	_parent_type = Term::ParentType::None;
+	_parent_ptr.raw = nullptr;
 }
 
 ostream & nts::operator<< ( ostream & o, const Term & t )
@@ -166,6 +168,13 @@ ostream & nts::operator<< ( ostream & o, const Term & t )
 //------------------------------------//
 // Formula                            //
 //------------------------------------//
+
+Formula::Formula ( Type t ) :
+	_type ( t )
+{
+	_parent_type    = ParentType::None;
+	_parent_ptr.raw = nullptr;
+}
 
 ostream & nts::operator<< ( ostream & o, const Formula & f )
 {
@@ -184,7 +193,7 @@ FormulaBop::FormulaBop ( BoolOp op,
 	_op ( op ),
 	_f { move ( f1 ), move ( f2 ) }
 {
-	;
+	set_formulas_parent();
 }
 
 FormulaBop::FormulaBop ( const FormulaBop & orig ) :
@@ -193,6 +202,7 @@ FormulaBop::FormulaBop ( const FormulaBop & orig ) :
 {
 	_f[0] = unique_ptr<Formula> ( orig._f[0]->clone() );
 	_f[1] = unique_ptr<Formula> ( orig._f[1]->clone() );
+	set_formulas_parent();
 }
 
 FormulaBop::FormulaBop ( FormulaBop && old ) :
@@ -201,6 +211,16 @@ FormulaBop::FormulaBop ( FormulaBop && old ) :
 {
 	_f[0] = move ( old._f[0] );
 	_f[1] = move ( old._f[1] );
+	set_formulas_parent();
+}
+
+void FormulaBop::set_formulas_parent()
+{
+	for ( unsigned int i = 0; i < 2; i++ )
+	{
+		_f[i]->_parent_ptr.formula = this;
+		_f[i]->_parent_type = ParentType::Formula;
+	}
 }
 
 Formula & FormulaBop::formula_1() const
@@ -231,19 +251,21 @@ FormulaNot::FormulaNot ( unique_ptr<Formula> f ) :
 	Formula ( Type::FormulaNot ),
 	_f ( move(f) )
 {
-	;
+	set_formula_parent();
 }
 
 FormulaNot::FormulaNot ( const FormulaNot & orig ) :
 	Formula ( Type::FormulaNot )
 {
 	_f = unique_ptr<Formula> ( orig._f->clone() );
+	set_formula_parent();
 }
 
 FormulaNot::FormulaNot ( FormulaNot && old ) : 
 	Formula ( Type::FormulaNot )
 {
 	_f = move ( old._f );
+	set_formula_parent();
 }
 
 Formula & FormulaNot::formula() const
@@ -254,6 +276,12 @@ Formula & FormulaNot::formula() const
 FormulaNot * FormulaNot::clone() const
 {
 	return new FormulaNot ( *this );
+}
+
+void FormulaNot::set_formula_parent()
+{
+	_f->_parent_ptr.formula = this;
+	_f->_parent_type = Formula::ParentType::Formula;
 }
 
 void FormulaNot::print ( ostream & o ) const
@@ -288,7 +316,7 @@ QuantifiedType::QuantifiedType ( DataType t,
 	_t    = move ( t    );
 	_from = move ( from );
 	_to   = move ( to   );
-
+	set_terms_parent();
 }
 
 QuantifiedType::QuantifiedType ( const QuantifiedType & orig ) :
@@ -300,6 +328,7 @@ QuantifiedType::QuantifiedType ( const QuantifiedType & orig ) :
 	{
 		_from = unique_ptr<Term> ( orig._from->clone() );
 		_to   = unique_ptr<Term> ( orig._to->clone() );
+		set_terms_parent();
 	}
 }
 
@@ -308,6 +337,22 @@ QuantifiedType::QuantifiedType ( QuantifiedType && old ) :
 {
 	_from = move ( old._from );
 	_to   = move ( old._to   );
+	set_terms_parent();
+}
+
+void QuantifiedType::set_terms_parent()
+{
+	if ( _from )
+	{
+		_from->_parent_type = Term::ParentType::QuantifiedType;
+		_from->_parent_ptr.qtype = this;
+	}
+
+	if ( _to )
+	{
+		_to->_parent_type = Term::ParentType::QuantifiedType;
+		_to->_parent_ptr.qtype = this;
+	}
 }
 
 ostream & nts::operator<< ( ostream & o, const QuantifiedType & qt )
@@ -399,7 +444,7 @@ QuantifiedFormula::QuantifiedFormula (
 	list    ( q, move ( type ) )
 
 {
-	;
+	set_formula_parent();
 }
 
 QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
@@ -407,6 +452,7 @@ QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
 	list ( orig.list )
 {
 	_f = unique_ptr<Formula> ( orig._f->clone() );
+	set_formula_parent();
 }
 
 QuantifiedFormula::QuantifiedFormula ( QuantifiedFormula && old ) :
@@ -414,7 +460,13 @@ QuantifiedFormula::QuantifiedFormula ( QuantifiedFormula && old ) :
 	_f   ( move ( old._f   ) ),
 	list ( move ( old.list ) )
 {
-	;
+	set_formula_parent();
+}
+
+void QuantifiedFormula::set_formula_parent()
+{
+	_f->_parent_ptr.formula = this;
+	_f->_parent_type = Formula::ParentType::Formula;
 }
 
 QuantifiedFormula * QuantifiedFormula::clone() const
@@ -498,18 +550,27 @@ BooleanTerm::BooleanTerm ( unique_ptr<Term> t ) :
 		throw TypeError();
 
 	_t = move(t);
+	set_term_parent();
 }
 
 BooleanTerm::BooleanTerm ( const BooleanTerm & orig ) :
 	AtomicProposition ( APType::BooleanTerm )
 {
 	_t = unique_ptr<Term> ( orig._t->clone() );
+	set_term_parent();
 }
 
 BooleanTerm::BooleanTerm ( BooleanTerm && old ) :
 	AtomicProposition ( APType::BooleanTerm )
 {
 	_t = move ( old._t );
+	set_term_parent();
+}
+
+void BooleanTerm::set_term_parent()
+{
+	_t->_parent_type = Term::ParentType::Formula;
+	_t->_parent_ptr.formula = this;
 }
 
 BooleanTerm * BooleanTerm::clone() const
@@ -533,6 +594,8 @@ Relation::Relation ( RelationOp op, unique_ptr<Term> t1, unique_ptr<Term> t2 ) :
 {
 	_t1 = move ( t1 );
 	_t2 = move ( t2 );
+
+	set_terms_parent();
 }
 
 Relation::Relation ( const Relation & orig ) :
@@ -542,6 +605,8 @@ Relation::Relation ( const Relation & orig ) :
 {
 	_t1 = unique_ptr<Term> ( orig._t1->clone() );
 	_t2 = unique_ptr<Term> ( orig._t2->clone() );
+
+	set_terms_parent();
 }
 
 Relation::Relation ( Relation && old ) :
@@ -551,7 +616,7 @@ Relation::Relation ( Relation && old ) :
 	_t2   ( move ( old._t2   ) ),
 	_type ( move ( old._type ) )
 {
-	;
+	set_terms_parent();
 }
 
 Relation * Relation::clone() const
@@ -562,6 +627,14 @@ Relation * Relation::clone() const
 void Relation::print ( std::ostream & o ) const
 {
 	o << "( " << *_t1 << " " << to_str ( _op ) << " " << *_t2 << " )";
+}
+
+void Relation::set_terms_parent()
+{
+	_t1->_parent_type = Term::ParentType::Formula;
+	_t1->_parent_ptr.formula = this;
+	_t2->_parent_type = Term::ParentType::Formula;
+	_t2->_parent_ptr.formula = this;
 }
 
 //------------------------------------//
@@ -597,11 +670,12 @@ ArrayWrite::ArrayWrite (
 			throw TypeError();
 	}
 
-
 	_arr       = & arr;
 	_indices_1 = move ( idxs_1 );
 	_indices_2 = move ( idxs_2 );
 	_values    = move ( values );
+
+	set_terms_parent();
 }
 
 ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
@@ -620,6 +694,8 @@ ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
 
 	for ( auto *x : orig._values )
 		_values.push_back ( x -> clone() );
+
+	set_terms_parent();
 }
 
 ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
@@ -630,6 +706,7 @@ ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
 	_indices_2 = move ( old._indices_2 );
 	_values    = move ( old._values    );
 
+	set_terms_parent();
 }
 
 ArrayWrite::~ArrayWrite()
@@ -672,6 +749,26 @@ void ArrayWrite::print ( ostream & o ) const
 	o << "]";
 }
 
+void ArrayWrite::set_terms_parent()
+{
+	for ( Term * t : _values )
+	{
+		t->_parent_type = Term::ParentType::Formula;
+		t->_parent_ptr.formula = this;
+	}
+
+	for ( Term * t : _indices_1 )
+	{
+		t->_parent_type = Term::ParentType::Formula;
+		t->_parent_ptr.formula = this;
+	}
+
+	for ( Term * t : _indices_2 )
+	{
+		t->_parent_type = Term::ParentType::Formula;
+		t->_parent_ptr.formula = this;
+	}
+}
 
 //------------------------------------//
 // ArithmeticOperation                //
@@ -685,7 +782,7 @@ ArithmeticOperation::ArithmeticOperation ( ArithOp op,
 	_t1 ( move ( t1 ) ),
 	_t2 ( move ( t2 ) )
 {
-	;
+	set_terms_parent();
 }
 
 ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
@@ -694,6 +791,8 @@ ArithmeticOperation::ArithmeticOperation ( const ArithmeticOperation & orig ) :
 {
 	_t1 = unique_ptr<Term> ( orig._t1->clone() );
 	_t2 = unique_ptr<Term> ( orig._t2->clone() );
+
+	set_terms_parent();
 }
 
 ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
@@ -702,7 +801,7 @@ ArithmeticOperation::ArithmeticOperation ( ArithmeticOperation && old ) :
 	_t1  ( std::move ( old._t1 ) ),
 	_t2  ( std::move ( old._t2 ) )
 {
-	;
+	set_terms_parent();
 }
 
 ArithmeticOperation * ArithmeticOperation::clone() const
@@ -715,10 +814,41 @@ void ArithmeticOperation::print ( ostream & o ) const
 	o << "( " << *_t1 << " " << to_str ( _op ) << " " << *_t2 << " )";
 }
 
+void ArithmeticOperation::set_terms_parent()
+{
+	_t1->_parent_type = Term::ParentType::Term;
+	_t2->_parent_ptr.term = this;
+}
+
 
 //------------------------------------//
 // ArrayTerm                          //
 //------------------------------------//
+
+void ArrayTerm::clear_indices_parent()
+{
+	for ( Term * t : _indices )
+	{
+		t->_parent_type = Term::ParentType::None;
+		t->_parent_ptr.term = nullptr;
+	}
+}
+
+void ArrayTerm::set_indices_parent()
+{
+	for ( Term * t : _indices )
+	{
+		t->_parent_type = Term::ParentType::Term;
+		t->_parent_ptr.term = this;
+	}
+}
+
+void ArrayTerm::set_terms_parent()
+{
+	set_indices_parent();
+	_array->_parent_type = Term::ParentType::Term;
+	_array->_parent_ptr.term = this;
+}
 
 DataType ArrayTerm::after ( const DataType & a_type, unsigned int n )
 {
@@ -756,6 +886,7 @@ ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
 {
 	_array = move ( arr );
 	_indices = move ( indices );
+	set_terms_parent();
 }
 
 ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
@@ -767,6 +898,8 @@ ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
 	{
 		_indices.push_back ( t->clone() );
 	}
+
+	set_terms_parent();
 }
 
 
@@ -794,6 +927,8 @@ ArrayTerm * ArrayTerm::clone() const
 
 void ArrayTerm::transform_indices ( IdxTransFunc f )
 {
+	clear_indices_parent();
+
 	transform (
 		_indices.cbegin(),
 		_indices.cend(),
@@ -802,6 +937,8 @@ void ArrayTerm::transform_indices ( IdxTransFunc f )
 			return f ( p_Term ( t ) ).release();
 		}
 	);
+
+	set_indices_parent();
 }
 
 //------------------------------------//
@@ -812,14 +949,20 @@ MinusTerm::MinusTerm ( unique_ptr < Term > term ) :
 	Term  ( term->type(), TermType::MinusTerm  ),
 	_term ( move ( term ) )
 {
-	;
+	set_term_parent();
 }
 
 MinusTerm::MinusTerm ( const MinusTerm & orig ) :
 	Term ( orig.type(), TermType::MinusTerm ),
 	_term ( unique_ptr < Term > ( orig._term->clone() ) )
 {
-	;
+	set_term_parent();
+}
+
+void MinusTerm::set_term_parent()
+{
+	_term->_parent_type = Term::ParentType::Term;
+	_term->_parent_ptr.term = this;
 }
 
 void MinusTerm::print ( ostream & o ) const

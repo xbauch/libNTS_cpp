@@ -164,6 +164,15 @@ void coercible ( const ScalarType & from, const ScalarType & to )
 		throw TypeError();
 }
 
+void DataType::set_term_parent()
+{
+	for ( Term *t : _arr_size )
+	{
+		t->_parent_ptr.dtype = this;
+		t->_parent_type = Term::ParentType::DataType;
+	}
+}
+
 DataType::DataType () :
 	_type ( ScalarType() ),
 	_dim_ref ( 0 ),
@@ -174,12 +183,12 @@ DataType::DataType () :
 
 DataType::DataType ( ScalarType t,
 		unsigned int dim_ref,
-		vector < Term * > && arr_size ) :
+		vector < Term * > arr_size ) :
 	_type ( t ),
 	_dim_ref ( dim_ref ),
-	_arr_size ( arr_size )
+	_arr_size ( move ( arr_size ) )
 {
-
+	set_term_parent();
 }
 
 DataType::DataType ( const DataType & orig ) :
@@ -190,6 +199,8 @@ DataType::DataType ( const DataType & orig ) :
 	{
 		_arr_size.push_back ( t->clone() );
 	}
+
+	set_term_parent();
 }
 
 DataType::DataType ( DataType && old ) :
@@ -197,7 +208,7 @@ DataType::DataType ( DataType && old ) :
 	_dim_ref  ( move ( old._dim_ref  ) ),
 	_arr_size ( move ( old._arr_size ) )
 {
-	;
+	set_term_parent();
 }
 
 DataType::~DataType ()
@@ -223,6 +234,8 @@ DataType & DataType::operator= ( const DataType  & orig )
 		_arr_size.push_back ( t->clone() );
 	}
 
+	set_term_parent();
+
 	return *this;
 }
 
@@ -237,6 +250,8 @@ DataType & DataType::operator= ( DataType && old )
 	_arr_size = move ( old._arr_size );
 	_type     = old._type;
 	_dim_ref  = old._dim_ref;
+
+	set_term_parent();
 
 	return *this;
 }

@@ -65,11 +65,13 @@ namespace nts
 			unsigned int _dim_ref;
 			std::vector<Term *> _arr_size;
 			
+			void set_term_parent();
+
 		public:
 			DataType ();
 			DataType ( ScalarType t,
 					unsigned int dim_ref = 0,
-					std::vector < Term * > && arr_size = {});
+					std::vector < Term * > arr_size = {});
 
 			DataType ( const DataType & orig );
 			DataType ( DataType && old );

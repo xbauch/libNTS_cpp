@@ -23,7 +23,13 @@ namespace nts
 
 
 // Forward declaration (not to depend on nts.hpp)
+class Nts;
 class Variable;
+class Formula;
+class FormulaTransitionRule;
+class CallTransitionRule;
+class QuantifiedType;
+
 
 enum class BoolOp
 {
@@ -94,6 +100,29 @@ class Term
 		virtual Term * clone() const = 0;
 
 		friend std::ostream & operator<< ( std::ostream & o, const Term & t );
+
+		enum class ParentType
+		{
+			None,
+			Term,
+			Formula,
+			DataType,
+			QuantifiedType,
+			CallTransitionRule
+		};
+
+		union ParentPtr
+		{
+			void               * raw;
+			Term               * term;
+			Formula            * formula;
+			DataType           * dtype;
+			QuantifiedType     * qtype;
+			CallTransitionRule * crule;
+		};
+
+		ParentType _parent_type;
+		ParentPtr  _parent_ptr;
 };
 
 // Formulas have always type Bool
@@ -102,10 +131,12 @@ class Term
 // * FormulaNot
 // * FormulaBop
 // * QuantifiedFormula
+// Formula is often owned by someone.
+
 class Formula
 {
 	public:
-		enum Type
+		enum class Type
 		{
 			AtomicProposition,
 			FormulaNot,
@@ -120,7 +151,7 @@ class Formula
 		virtual void print ( std::ostream & o ) const = 0;
 
 	public:
-		Formula ( Type t ) : _type ( t ) { ; }
+		Formula ( Type t );
 		virtual ~Formula() = default;
 
 		virtual Formula * clone() const = 0;
@@ -128,6 +159,36 @@ class Formula
 		Type type() const { return _type; }
 
 		friend std::ostream & operator<< ( std::ostream &, const Formula & );
+
+		// Who is owner of this formula?
+		enum class ParentType
+		{
+			None,
+
+			// This formula makes a transition rule
+			FormulaTransitionRule,
+
+			// Another formula - like FormulaNot or QuantifiedFormula
+			Formula,
+
+			// Nts - this is a root of initial formula
+			NtsInitialFormula,
+		};
+
+		// Points to owner
+		union ParentPtr
+		{
+			void                  * raw;
+			FormulaTransitionRule * ftr;
+			Formula               * formula;
+			Nts                   * nts;
+		};
+
+
+		// These variables can be publicly read,
+		// but only owner is allowed to write them.
+		ParentType _parent_type;
+		ParentPtr  _parent_ptr;
 };
 
 class FormulaBop : public Formula
@@ -135,6 +196,8 @@ class FormulaBop : public Formula
 	private:
 		BoolOp _op;
 		std::unique_ptr<Formula> _f[2];
+
+		void set_formulas_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -158,6 +221,8 @@ class FormulaNot : public Formula
 {
 	private:
 		std::unique_ptr<Formula>  _f;
+
+		void set_formula_parent();
 		
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -180,6 +245,8 @@ class QuantifiedType
 
 		std::unique_ptr<Term> _from;
 		std::unique_ptr<Term> _to;
+
+		void set_terms_parent();
 		
 	public:
 		QuantifiedType ( DataType t );
@@ -228,6 +295,8 @@ class QuantifiedFormula : public Formula
 {
 	private:
 		std::unique_ptr<Formula> _f;
+
+		void set_formula_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -299,6 +368,8 @@ class BooleanTerm : public AtomicProposition
 	private:
 		std::unique_ptr<Term> _t;
 
+		void set_term_parent();
+
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
@@ -321,6 +392,8 @@ class Relation : public AtomicProposition
 		std::unique_ptr<Term> _t2;
 		// Both _t1 and _t2 are coerced to _type
 		DataType              _type;
+
+		void set_terms_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -362,6 +435,8 @@ class ArrayWrite : public AtomicProposition
 		Terms _indices_2;
 		Terms _values;
 
+		void set_terms_parent();
+
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
@@ -385,6 +460,8 @@ class ArithmeticOperation : public Term
 		ArithOp _op;
 		p_Term  _t1;
 		p_Term  _t2;
+
+		void set_terms_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -414,6 +491,9 @@ class ArrayTerm : public Term
 
 		// Type after application of 'n' indices
 		static DataType after ( const DataType & a_type, unsigned int n );
+		void clear_indices_parent();
+		void set_indices_parent();
+		void set_terms_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
@@ -465,6 +545,7 @@ class MinusTerm : public Term
 {
 	private:
 		std::unique_ptr < Term > _term;
+		void set_term_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
