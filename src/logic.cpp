@@ -762,7 +762,7 @@ ArrayTerm::ArrayTerm ( const ArrayTerm & orig ) :
 	Term ( orig.type(), TermType::ArrayTerm )
 {
 	_array = unique_ptr < Term > (orig._array->clone() );
-	_indices.resize ( orig._indices.size() );
+	_indices.reserve ( orig._indices.size() );
 	for ( const Term *t : orig._indices )
 	{
 		_indices.push_back ( t->clone() );
