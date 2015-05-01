@@ -327,17 +327,25 @@ class QuantifiedVariableList
 
 class QuantifiedFormula : public Formula
 {
+	// Order of declaration matters.
+	// Formula can use variables
+	// owned by list. If so,
+	// it should be destroyed before list.
+	// For that reason formula must be placed
+	// after the list.
+	public:
+		QuantifiedVariableList list;
+
 	private:
 		std::unique_ptr<Formula> _f;
 
+	private:
 		void set_formula_parent();
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
-		QuantifiedVariableList list;
-
 		QuantifiedFormula (
 				Quantifier               q,
 				QuantifiedType           type,

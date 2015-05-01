@@ -85,6 +85,12 @@ Nts::Nts ( string  name ) :
 
 Nts::~Nts()
 {
+	// Destroy them in the reverse order.
+	// In this case, order of declarations
+	// really does not matter - but better be sure ;)
+	// Must be destoyed before  variables etc..
+	this->initial_formula.reset();
+
 	for ( auto i : _instances )
 		delete i;
 	_instances.clear();
@@ -96,6 +102,10 @@ Nts::~Nts()
 	for ( auto v : _vars )
 		delete v;
 	_vars.clear();
+
+	for ( auto v : _pars )
+		delete v;
+	_pars.clear();
 }
 
 ostream & nts::operator<< ( ostream & o , const Nts & nts )
@@ -251,37 +261,34 @@ BasicNts::BasicNts ( string name ) :
 
 BasicNts::~BasicNts()
 {
+	// Deletion of transition unlinks it from the list,
+	// so we can not call ++ on the iterator
+	for ( auto t = _transitions.begin(); t != _transitions.end(); )
 	{
-		// Deletion of transition unlinks it from the list,
-		// so we can not call ++ on the iterator
-		for ( auto t = _transitions.begin(); t != _transitions.end(); )
-		{
-			auto cur = t++;
-			delete *cur;
-		}
-
-		// Now _transitions should be empty
+		auto cur = t++;
+		delete *cur;
 	}
-
-	for ( auto s : _states )
-		delete s;
-	_states.clear();
+	// Now _transitions should be empty
 
 	for ( auto v : _variables )
 		delete v;
 	_variables.clear();
 
-	for ( auto p : _pars )
+	for ( auto p : _params_out )
 		delete p;
-	_pars.clear();
+	_params_out.clear();
 
 	for ( auto p : _params_in )
 		delete p;
 	_params_in.clear();
 
-	for ( auto p : _params_out )
+	for ( auto p : _pars )
 		delete p;
-	_params_out.clear();
+	_pars.clear();
+
+	for ( auto s : _states )
+		delete s;
+	_states.clear();
 }
 
 

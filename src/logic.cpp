@@ -450,9 +450,8 @@ QuantifiedFormula::QuantifiedFormula (
 				QuantifiedType      type,
 				unique_ptr<Formula> f    ) :
 	Formula ( Type::QuantifiedFormula ),
-	_f      ( move ( f ) ),
-	list    ( q, move ( type ) )
-
+	list    ( q, move ( type ) ),
+	_f      ( move ( f ) )
 {
 	list._parent = this;
 	set_formula_parent();
@@ -469,8 +468,8 @@ QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
 
 QuantifiedFormula::QuantifiedFormula ( QuantifiedFormula && old ) :
 	Formula ( Type::QuantifiedFormula ),
-	_f   ( move ( old._f   ) ),
-	list ( move ( old.list ) )
+	list ( move ( old.list ) ),
+	_f   ( move ( old._f   ) )
 {
 	set_formula_parent();
 }
@@ -1111,7 +1110,8 @@ VariableReference::VariableReference ( Variable & var, bool primed ) :
 
 VariableReference::~VariableReference()
 {
-	remove_use();
+	if ( _var )
+		remove_use();
 }
 
 VariableReference * VariableReference::clone() const
@@ -1147,6 +1147,9 @@ void VariableReference::set_use()
 
 void VariableReference::remove_use()
 {
+	if ( !_var )
+		throw std::logic_error ( "remove_use called twice" );
 	_var->_users.erase ( _var_use );
+	_var = nullptr;
 }
 

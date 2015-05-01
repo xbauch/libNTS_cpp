@@ -26,6 +26,18 @@
  * owner of that entity.
  *
  * Parent calls delete on all its child.
+ *
+ * Order of declaration matters (read the comments!). Neither
+ * local-variable-sized arrays, nor global-variable-sized arrays are not supported,
+ * for two reasons:
+ * i) Semantics of such array is unclear and ugly.
+ * ii) !! Array size would refer to some variable, which could (and probably would)
+ *     be destroyed before the array. Destructing the array would then lead to
+ *     undefined behavior. !!
+ * But it is possible to specify the size of local variable using input parameters,
+ * and it is possible to specify the size of output array using all variables.
+ *
+ * Well, to be honest, the implementation of destructors matters too.
  * 
  */
 
@@ -55,19 +67,37 @@ class Annotations : public std::list < Annotation * >
 class Nts
 {
 	private:
-		using Instances = std::list < Instance * >;
-		Instances _instances;
 		friend class Instance;
-
-		using BasicNtses = std::list < BasicNts * >;
-		BasicNtses _basics;
 		friend class BasicNts;
-
-		// Global variables
-		using Variables = std::list < Variable * >;
-		Variables _vars;
-		Variables _pars;
 		friend class Variable;
+
+		using Instances = std::list < Instance * >;
+		using BasicNtses = std::list < BasicNts * >;
+		using Variables = std::list < Variable * >;
+
+
+		// Notes about order of declaration:
+		// Some of BasicNtses may own an VariableReference
+		// to some of global variables or parameters.
+		// Because destructor VariableReference needs
+		// it to point to valid variable, those references
+		// must be destroyed prior to variables.
+		// For that reason, variables must be declared
+		// before basic ntses.
+		//
+		// Some of global variables may be arrays with
+		// size somehow related to parameters. For the similar
+		// reason, parameters must be declared before variables.
+		//
+		// Instances refer to both BasicNts-es and to parameters
+		// (not implemented yet). For the similar reason,
+		// instances should be declared after BasicNts-es.
+
+		Variables _pars;
+		Variables _vars;
+
+		BasicNtses _basics;
+		Instances _instances;
 
 	public:
 		explicit Nts ( std::string name );
@@ -145,12 +175,36 @@ class State;
 class BasicNts
 {
 	private:
+		friend class Transition;
+		friend class Variable;
+		friend class State;
+
 		using Basics = decltype(Nts::_basics);
+		using Transitions = std::list < Transition * >;
+		using Variables = std::list < Variable * >;
+		using States = std::list < State * >;
+
+
+		// Order of declaration:
+		// For detailed commentary, see Nts.
+		//
+		// Transitions refer to variables, in/out parameters,
+		// and 'par' parameters. They should be last.
+		//
+		// Almost everything can refer to _pars. They should be
+		// at the beginning.
 
 		Nts * _parent;
 		Basics::iterator _pos;
 
-		friend class Transition;
+		States _states;
+		Variables _pars;
+
+		// This must be the same type as in NTS
+		Variables _params_in;
+		Variables _params_out;
+		Variables _variables;
+
 
 		/*
 		 * Must be a list. User will want to
@@ -159,22 +213,7 @@ class BasicNts
 		 * We need that erase() on underlying conteiner
 		 * does not invalidate other iterators.
 		 */
-		using Transitions = std::list < Transition * >;
 		Transitions _transitions;
-
-		friend class Variable;
-		// This must be the same type as in NTS
-		using Variables = std::list < Variable * >;
-		Variables _variables;
-		Variables _params_in;
-		Variables _params_out;
-		Variables _pars;
-
-		friend class State;
-		// Increases after each state_add()
-		using States = std::list < State * >;
-		States _states;
-
 
 		void print_params_in  ( std::ostream & o ) const;
 		void print_params_out ( std::ostream & o ) const;
