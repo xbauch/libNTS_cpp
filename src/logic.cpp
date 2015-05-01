@@ -300,6 +300,8 @@ QuantifiedType::QuantifiedType ( DataType t ) :
 	// quantification is supported only over scalar types
 	if ( ! t.is_scalar() )
 		throw TypeError(); 
+
+	_parent = nullptr;
 	_t = move ( t );
 }
 
@@ -313,6 +315,7 @@ QuantifiedType::QuantifiedType ( DataType t,
 	if ( from->type() != _t || to->type() != _t )
 		throw TypeError();
 
+	_parent = nullptr;
 	_t    = move ( t    );
 	_from = move ( from );
 	_to   = move ( to   );
@@ -324,6 +327,7 @@ QuantifiedType::QuantifiedType ( const QuantifiedType & orig ) :
 	_from ( nullptr ),
 	_to   ( nullptr )
 {
+	_parent = nullptr;
 	if ( orig._from )
 	{
 		_from = unique_ptr<Term> ( orig._from->clone() );
@@ -335,6 +339,7 @@ QuantifiedType::QuantifiedType ( const QuantifiedType & orig ) :
 QuantifiedType::QuantifiedType ( QuantifiedType && old ) :
 	_t ( move ( old._t ) )
 {
+	_parent = move ( old._parent );
 	_from = move ( old._from );
 	_to   = move ( old._to   );
 	set_terms_parent();
@@ -380,12 +385,16 @@ QuantifiedVariableList::QuantifiedVariableList
 	quantifier ( q )
 
 {
-	;
+	_qtype._parent = this;
+	_parent = nullptr;
 }
 QuantifiedVariableList::QuantifiedVariableList ( const QuantifiedVariableList & orig ) :
 	_qtype     ( orig._qtype     ),
 	quantifier ( orig.quantifier )
 {
+	_qtype._parent = this;
+	_parent = nullptr;
+
 	for ( auto * v : orig._vars )
 	{
 		auto * clone = v->clone();
@@ -397,6 +406,7 @@ QuantifiedVariableList::QuantifiedVariableList ( QuantifiedVariableList && old )
 	_qtype     ( move ( old._qtype     ) ),
 	quantifier ( move ( old.quantifier ) )
 {
+	_parent = move ( old._parent );
 	_vars = move ( old._vars );
 	old._vars.clear();
 
@@ -444,6 +454,7 @@ QuantifiedFormula::QuantifiedFormula (
 	list    ( q, move ( type ) )
 
 {
+	list._parent = this;
 	set_formula_parent();
 }
 
@@ -451,6 +462,7 @@ QuantifiedFormula::QuantifiedFormula ( const QuantifiedFormula & orig ) :
 	Formula ( Type::QuantifiedFormula ),
 	list ( orig.list )
 {
+	list._parent = this;
 	_f = unique_ptr<Formula> ( orig._f->clone() );
 	set_formula_parent();
 }

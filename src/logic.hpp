@@ -272,10 +272,12 @@ class QuantifiedType
 		std::unique_ptr<Term> _to;
 
 		void set_terms_parent();
+
+		friend class QuantifiedVariableList;
+		QuantifiedVariableList * _parent;
 		
 	public:
 		QuantifiedType ( DataType t );
-		QuantifiedType ( DataType && t );
 		QuantifiedType ( DataType t,
 				std::unique_ptr<Term> from,
 				std::unique_ptr<Term> to );
@@ -288,9 +290,12 @@ class QuantifiedType
 		const Term * from() { return _from.get(); }
 		const Term * to()   { return _to.get();   }
 
+		QuantifiedVariableList * parent() const { return _parent; }
+
 		friend std::ostream & operator<< ( std::ostream & o, const QuantifiedType & qt );
 };
 
+class QuantifiedFormula;
 // Owns all variables inserted in Variable::insert_to()
 class QuantifiedVariableList
 {
@@ -299,6 +304,8 @@ class QuantifiedVariableList
 		std::list < Variable * > _vars;
 
 		friend class Variable;
+		friend class QuantifiedFormula;
+		QuantifiedFormula * _parent;
 
 	public:
 		Quantifier quantifier;
@@ -308,6 +315,8 @@ class QuantifiedVariableList
 		QuantifiedVariableList ( QuantifiedVariableList && old );
 
 		~QuantifiedVariableList();
+
+		QuantifiedFormula * parent() const { return _parent; }
 
 		const QuantifiedType        & qtype()      const { return _qtype; }
 		const std::list<Variable *> & variables()  const { return _vars; }
