@@ -19,49 +19,6 @@ using std::logic_error;
 using std::unique_ptr;
 using std::to_string;
 
-#if 0
-class FunctionInliner
-{
-	private:
-		BasicNts & _bn;
-		map < string, Variable * > _visible_names;
-
-	public:
-
-		FunctionInliner ( BasicNts & bn );
-
-		/**
-		 * @pre nothing
-		 * @post _visible_names contains all names visible from
-		 * _bn (i.e. global variables, local variables and parameters)
-		 */
-		void init_names();
-};
-
-FunctionInliner::FunctionInliner ( BasicNts & bn ) :
-	_bn ( bn )
-{
-	;
-}
-
-void FunctionInliner::init_names()
-{
-	_visible_names.clear();
-	for ( Variable *v : _bn.params_in() )
-		_visible_names.insert ( make_pair ( v->name, v ) );
-
-	for ( Variable *v : _bn.params_out() )
-		_visible_names.insert ( make_pair ( v->name, v ) );
-
-	for ( Variable *v : _bn.variables() )
-		_visible_names.insert ( make_pair ( v->name, v ) );
-
-	if ( _bn.parent() )
-		for ( Variable *v : _bn.parent()->variables() )
-			_visible_names.insert ( make_pair ( v->name, v ) );
-}
-#endif
-
 /*
  * T must provide member access to 'annotations ( list of annotations)'
  * and to 'std::string name() const'
