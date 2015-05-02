@@ -9,6 +9,7 @@
 #include <ostream>
 #include <memory>
 
+#include "variables.hpp"
 #include "data_types.hpp"
 
 /*
@@ -34,10 +35,8 @@
  * ii) !! Array size would refer to some variable, which could (and probably would)
  *     be destroyed before the array. Destructing the array would then lead to
  *     undefined behavior. !!
- * But it is possible to specify the size of local variable using input parameters,
- * and it is possible to specify the size of output array using all variables.
- *
- * Well, to be honest, the implementation of destructors matters too.
+ * But it might be possible to specify the size of local variable using input parameters,
+ * and it might be possible to specify the size of output array using all variables.
  * 
  */
 
@@ -73,7 +72,6 @@ class Nts
 
 		using Instances = std::list < Instance * >;
 		using BasicNtses = std::list < BasicNts * >;
-		using Variables = std::list < Variable * >;
 
 
 		// Notes about order of declaration:
@@ -93,8 +91,8 @@ class Nts
 		// (not implemented yet). For the similar reason,
 		// instances should be declared after BasicNts-es.
 
-		Variables _pars;
-		Variables _vars;
+		VariableContainer _pars;
+		VariableContainer _vars;
 
 		BasicNtses _basics;
 		Instances _instances;
@@ -114,12 +112,12 @@ class Nts
 			return _basics;
 		}
 
-		const Variables & variables() const
+		const VariableContainer & variables() const
 		{
 			return _vars;
 		}
 
-		const Variables & parameters() const
+		const VariableContainer & parameters() const
 		{
 			return _pars;
 		}
@@ -181,7 +179,6 @@ class BasicNts
 
 		using Basics = decltype(Nts::_basics);
 		using Transitions = std::list < Transition * >;
-		using Variables = std::list < Variable * >;
 		using States = std::list < State * >;
 
 
@@ -198,12 +195,12 @@ class BasicNts
 		Basics::iterator _pos;
 
 		States _states;
-		Variables _pars;
+		VariableContainer _pars;
 
 		// This must be the same type as in NTS
-		Variables _params_in;
-		Variables _params_out;
-		Variables _variables;
+		VariableContainer _params_in;
+		VariableContainer _params_out;
+		VariableContainer _variables;
 
 
 		/*
@@ -248,9 +245,9 @@ class BasicNts
 		void insert_to ( Nts & parent );
 		Nts * parent() const { return _parent; }
 
-		const Variables & variables()  const { return _variables;  }
-		const Variables & params_in()  const { return _params_in;  }
-		const Variables & params_out() const { return _params_out; }
+		const VariableContainer & variables()  const { return _variables;  }
+		const VariableContainer & params_in()  const { return _params_in;  }
+		const VariableContainer & params_out() const { return _params_out; }
 
 		const States & states() const { return _states; }
 
@@ -323,22 +320,18 @@ class Variable
 
 		// If variable has a parent, then _pos is valid iterator
 		// and points to position of this variable in parent's list
-		using Variables = decltype(Nts::_vars);
-		Variables         * _parent_list;
-		Variables::iterator _pos;
+		VariableContainer         * _container;
+		VariableContainer::iterator _pos;
 
 
-		friend class nts::VariableReference;
-		friend class nts::ArrayWrite;
-		friend class QuantifiedVariableList;
-
-		using Users = std::list < VariableUser >;
-		Users _users;
-
+		friend class VariableUse;
+		VariableUsesList _uses;
 
 		// If variable is inserted into a parent, default move of variable
 		// or parent would break this relation.
-		void insert_to ( Variables & parent, const Variables::iterator & before );
+		void insert_to (
+				VariableContainer                 & cont,
+				const VariableContainer::iterator & before );
 
 	public:
 		Variable ( DataType t, std::string name );
@@ -365,11 +358,11 @@ class Variable
 		void insert_before ( const Variable & var );
 		void remove_from_parent();
 
-		const Users & users () const { return _users; }
+		const VariableUsesList & uses () const { return _uses; }
 	
 		const DataType & type() const { return _type; }
 
-		const Variables * owner_list() const { return _parent_list; }
+		const VariableContainer * container() const { return _container; }
 
 		Variable * clone() const;
 
@@ -379,6 +372,8 @@ class Variable
 		std::string name;
 		void * user_data;
 };
+
+
 
 class BitVectorVariable final : public Variable
 {
@@ -452,8 +447,6 @@ class TransitionRule
 	public:
 		TransitionRule ( Kind k ) : _kind ( k ), _t ( nullptr ) { ; }
 
-		// All transition rules can be managed in one container
-		// ( virtual destructors allows it )
 		virtual ~TransitionRule() = default;
 
 		Kind kind() const { return _kind; }
@@ -468,13 +461,13 @@ class Term;
 class CallTransitionRule : public TransitionRule
 {
 	public:
-		using Variables    = std::vector < const Variable * >;
-		using Terms        = std::vector < Term * >;
+		using Terms     = std::vector < Term * >;
+		using Variables = std::vector < Variable * >;
 
 	private:
 		BasicNts & _dest;
 		Terms      _term_in;
-		Variables  _var_out;
+		VariableUseContainer _var_out;
 
 		virtual std::ostream & print ( std::ostream & o ) const override;
 
@@ -504,11 +497,11 @@ class CallTransitionRule : public TransitionRule
 		BasicNts & dest() const { return _dest; }
 
 		const Terms & terms_in()  const { return _term_in;  }
-		const Variables & variables_out() const { return _var_out; }
+		const VariableUseContainer & variables_out() const { return _var_out; }
 
 		virtual CallTransitionRule * clone() const override;
 
-		using VarTransFunc = std::function < const Variable * ( const Variable * ) >;
+		using VarTransFunc = std::function < Variable * ( Variable * ) >;
 		void transform_return_variables ( VarTransFunc f );
 };
 

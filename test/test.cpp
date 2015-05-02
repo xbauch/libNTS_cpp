@@ -295,9 +295,9 @@ struct Example_callees_callers
 
 		// Find all uses of bvvar[0]
 		printf ( "Users of bvvar[0]\n");
-		for ( auto & u : bvvar[0]->users() )
+		for ( const VariableUse * u : bvvar[0]->uses() )
 		{
-			printf ( "user: %p\n", u.user_ptr.raw );
+			printf ( "user: %p\n", u->user_ptr.raw );
 		}
 
 	}

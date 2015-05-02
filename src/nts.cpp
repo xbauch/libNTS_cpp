@@ -99,13 +99,6 @@ Nts::~Nts()
 		delete b;
 	_basics.clear();
 
-	for ( auto v : _vars )
-		delete v;
-	_vars.clear();
-
-	for ( auto v : _pars )
-		delete v;
-	_pars.clear();
 }
 
 ostream & nts::operator<< ( ostream & o , const Nts & nts )
@@ -269,22 +262,6 @@ BasicNts::~BasicNts()
 		delete *cur;
 	}
 	// Now _transitions should be empty
-
-	for ( auto v : _variables )
-		delete v;
-	_variables.clear();
-
-	for ( auto p : _params_out )
-		delete p;
-	_params_out.clear();
-
-	for ( auto p : _params_in )
-		delete p;
-	_params_in.clear();
-
-	for ( auto p : _pars )
-		delete p;
-	_pars.clear();
 
 	for ( auto s : _states )
 		delete s;
@@ -803,13 +780,17 @@ bool CallTransitionRule::check_args (
 
 CallTransitionRule::CallTransitionRule ( BasicNts & dest, Terms in, Variables out ) :
 	TransitionRule ( Kind::Call ),
-	_dest          ( dest       )
+	_dest          ( dest       ),
+	_var_out       ( *this      )
 {
 	if ( !check_args ( dest, in, out ) )
 		throw TypeError();
 
 	_term_in = move ( in  );
-	_var_out = move ( out );
+
+	for ( Variable * v : out )
+		_var_out.push_back ( v );
+
 	set_terms_parent();
 }
 
@@ -819,7 +800,6 @@ CallTransitionRule::CallTransitionRule ( const CallTransitionRule & orig ) :
 	_var_out       ( orig._var_out )
 {
 	_term_in.reserve ( orig._term_in.size() );
-	_var_out.reserve ( orig._var_out.size() );
 
 	for ( const Term * t : orig._term_in )
 		_term_in.push_back ( t->clone() );
@@ -848,10 +828,10 @@ void CallTransitionRule::transform_return_variables ( VarTransFunc f )
 			_var_out.cbegin(),
 			_var_out.cend(),
 			_var_out.begin(),
-			[ &f ] ( const Variable * v1 ) -> const Variable *
+			[ &f ] ( const VariableUse & v1 ) -> Variable *
 			{
 				// TODO: Check type
-				return f ( v1 );
+				return f ( v1.get() );
 			}
 	);
 }
@@ -867,7 +847,7 @@ void CallTransitionRule::set_terms_parent()
 
 namespace
 {
-	ostream & print_variable_name ( ostream &o, const Variable * v )
+	ostream & print_variable_name ( ostream &o, const VariableUse & v )
 	{
 		o << v->name;
 		return o;
@@ -883,7 +863,10 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 		if ( _var_out.size() > 1 )
 			o << "( ";
 
-		to_csv ( o, _var_out.cbegin(), _var_out.cend(), print_variable_name, "', " ) << "'";
+		to_csv ( o,
+				_var_out.cbegin(),
+				_var_out.cend(),
+				print_variable_name, "', " ) << "'";
 
 		if ( _var_out.size() > 1 )
 			o << " )";
@@ -903,54 +886,56 @@ ostream & CallTransitionRule::print ( std::ostream & o ) const
 //------------------------------------//
 
 Variable::Variable ( DataType t, string name ) :
-	_type        ( move ( t    ) ),
-	_parent_list ( nullptr       ),
-	name         ( move ( name ) ),
-	user_data    ( nullptr       )
+	_type      ( move ( t    ) ),
+	_container ( nullptr       ),
+	name       ( move ( name ) ),
+	user_data  ( nullptr       )
 {
 
 }
 
 Variable::Variable ( const Variable & orig ) :
-	_type        ( orig._type       ),
-	_parent_list ( nullptr          ),
-	annotations  ( orig.annotations ),
-	name         ( orig.name        ),
-	user_data    ( nullptr          )
+	_type       ( orig._type       ),
+	_container  ( nullptr          ),
+	annotations ( orig.annotations ),
+	name        ( orig.name        ),
+	user_data   ( nullptr          )
 {
 	;
 }
 
 Variable::Variable ( const Variable && old ) :
-	_type        ( move ( old._type        ) ),
-	_parent_list ( move ( old._parent_list ) ),
-	annotations  ( move ( old.annotations  ) ),
-	name         ( move ( old.name         ) ),
-	user_data    ( move ( old.user_data    ) )
+	_type       ( move ( old._type       ) ),
+	_container  ( move ( old._container  ) ),
+	annotations ( move ( old.annotations ) ),
+	name        ( move ( old.name        ) ),
+	user_data   ( move ( old.user_data   ) )
 {
-	if ( _parent_list )
+	if ( _container )
 	{
 		_pos = old._pos;
 		*(_pos) = this;
 	}
 }
 
-void Variable::insert_to ( Variables & parent, const Variables::iterator & before )
+void Variable::insert_to (
+		VariableContainer                 & container,
+		const VariableContainer::iterator & before    )
 {
-	if ( _parent_list )
-		throw std::logic_error ( "Variable already has a parent" );
+	if ( _container )
+		throw std::logic_error ( "Variable already in container" );
 
-	_parent_list = &parent;
-	_pos = _parent_list->insert ( before, this );
+	_container = & container;
+	_pos = _container->insert ( before, this );
 }
 
 void Variable::remove_from_parent()
 {
-	if ( ! _parent_list )
+	if ( ! _container )
 		throw std::logic_error ( "Variable does not have a parent" );
 
-	_parent_list->erase ( _pos );
-	_parent_list = nullptr;
+	_container->erase ( _pos );
+	_container = nullptr;
 }
 
 void Variable::insert_to ( Nts & n )
@@ -993,10 +978,10 @@ void Variable::insert_to ( QuantifiedVariableList & ql )
 
 void Variable::insert_before ( const Variable & var )
 {
-	if ( !var._parent_list )
+	if ( !var._container )
 		throw std::logic_error ( "Variable does not have a parent" );
 
-	insert_to ( *var._parent_list, var._pos );
+	insert_to ( *var._container, var._pos );
 }
 
 Variable * Variable::clone() const

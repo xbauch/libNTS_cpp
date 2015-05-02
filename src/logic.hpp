@@ -8,7 +8,7 @@
 #include <initializer_list>
 #include <memory>
 #include "data_types.hpp"
-
+#include "variables.hpp"
 
 namespace nts
 {
@@ -22,7 +22,6 @@ namespace nts
  */
 
 
-// Forward declaration (not to depend on nts.hpp)
 class Nts;
 class Variable;
 class Formula;
@@ -32,6 +31,7 @@ class QuantifiedType;
 class VariableReference;
 class ArrayWrite;
 class QuantifiedVariableList;
+class CallTransitionRule;
 
 enum class BoolOp
 {
@@ -66,28 +66,6 @@ enum class Quantifier
 	Exists
 };
 
-// Who uses this variable
-struct VariableUser
-{
-	enum class UserType
-	{
-		VariableReference,
-		ArrayWrite,
-	};
-
-	union UserPtr
-	{
-		void              * raw;
-		VariableReference * vref;
-		ArrayWrite        * arr_wr;
-	};
-
-	UserType user_type;
-	UserPtr  user_ptr;
-
-	VariableUser ( VariableReference & vref );
-	VariableUser ( ArrayWrite & arr_wr );
-};
 
 class Term
 {
@@ -302,7 +280,11 @@ class QuantifiedVariableList
 {
 	private:
 		QuantifiedType           _qtype;
-		std::list < Variable * > _vars;
+
+		// Order matters: this container must be placed
+		// before formula, because formula may use (and will use)
+		// variables from there.
+		VariableContainer        _vars;
 
 		friend class Variable;
 		friend class QuantifiedFormula;
@@ -315,7 +297,7 @@ class QuantifiedVariableList
 		QuantifiedVariableList ( const QuantifiedVariableList & orig );
 		QuantifiedVariableList ( QuantifiedVariableList && old );
 
-		~QuantifiedVariableList();
+		~QuantifiedVariableList() = default;
 
 		QuantifiedFormula * parent() const { return _parent; }
 
@@ -396,12 +378,12 @@ class Havoc : public AtomicProposition
 
 	public:
 		Havoc ();
-		explicit Havoc ( std::vector < Variable * > list );
+		Havoc ( const std::initializer_list < Variable * > & );
 		Havoc ( const Havoc & orig );
 		Havoc ( Havoc && old );
 		virtual ~Havoc() = default;
 
-		std::vector < Variable * > variables;
+		VariableUseContainer variables;
 
 		virtual Havoc * clone() const override;
 };
@@ -469,9 +451,9 @@ class ArrayWrite : public AtomicProposition
 		// _indices_1   \ |
 		//                |
 		// _indices_2 ----+
-		//
-		Variable * _arr;
-		std::list < VariableUser > :: iterator _var_use;
+	
+		// Order matters: this should be destroyed last
+		VariableUse _arr;
 
 		using Terms = std::vector < Term * >;
 
@@ -480,9 +462,7 @@ class ArrayWrite : public AtomicProposition
 		Terms _values;
 
 		void set_terms_parent();
-		void set_use();
-		void remove_use();
-
+	
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
@@ -497,6 +477,7 @@ class ArrayWrite : public AtomicProposition
 		const Terms & indices_1() const { return _indices_1; }
 		const Terms & indices_2() const { return _indices_2; }
 		const Terms & values()    const { return _values;    }
+		Variable * array() const;
 };
 
 class ArithmeticOperation : public Term
@@ -552,6 +533,7 @@ class ArrayTerm : public Term
 		virtual ~ArrayTerm();
 
 		Term & array() const { return *_array; }
+		const std::vector < Term * > & indices() const { return _indices; }
 
 		// A function which becomes an owner of given term
 		// and gives caller a new term to use
@@ -687,24 +669,20 @@ class UserConstant : public Constant
 class VariableReference : public Leaf
 {
 	private:
-		Variable * _var;
-		std::list < VariableUser > :: iterator _var_use;
-
-		const bool       _primed;
-
-		void set_use();
-		void remove_use();
+		VariableUse _var;
+		const bool  _primed;
 
 	protected:
 		virtual void print ( std::ostream & o ) const override;
 
 	public:
 		VariableReference ( Variable & var, bool primed );
-		virtual ~VariableReference();
+		virtual ~VariableReference() = default;
 
 		bool primed() const { return _primed; }
-		const Variable & variable () const { return *_var; }
-		Variable & variable() { return *_var; }
+
+		const VariableUse & variable () const { return _var; }
+		VariableUse & variable() { return _var; }
 
 		void substitute ( Variable & var );
 

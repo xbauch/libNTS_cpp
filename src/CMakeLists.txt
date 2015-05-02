@@ -5,6 +5,7 @@ set ( lib_name "libnts_cpp" )
 
 add_library ( NTS_cpp SHARED
 	"data_types.cpp"
+	"variables.cpp"
 	"nts.cpp"
 	"logic.cpp"
 	"sugar.cpp"
@@ -45,6 +46,7 @@ install(
 install(
 	FILES
 		"nts.hpp"
+		"variables.hpp"
 		"logic.hpp"
 		"sugar.hpp"
 		"data_types.hpp"

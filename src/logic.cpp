@@ -417,14 +417,6 @@ QuantifiedVariableList::QuantifiedVariableList ( QuantifiedVariableList && old )
 	}
 }
 
-QuantifiedVariableList::~QuantifiedVariableList ()
-{
-	for ( auto *v : _vars )
-	{
-		delete v;
-	}
-}
-
 ostream & nts::operator<< ( ostream & o, const QuantifiedVariableList & qvl )
 {
 	auto print_name = [] ( ostream & o, const Variable *v ) 
@@ -504,20 +496,21 @@ AtomicProposition::AtomicProposition ( APType t ) :
 //------------------------------------//
 // Havoc                              //
 //------------------------------------//
-
+// TODO: Varible users
 Havoc::Havoc () :
-	AtomicProposition ( APType::Havoc )
-{
-	;
-}
-
-Havoc::Havoc ( std::vector < Variable * > list ) :
 	AtomicProposition ( APType::Havoc ),
-	variables ( move ( list ) )
+	variables ( *this )
 {
 	;
 }
 
+Havoc::Havoc ( const std::initializer_list < Variable * > & l ) :
+	AtomicProposition ( APType::Havoc ),
+	variables ( *this )
+{
+	for ( Variable * v : l )
+		variables.push_back ( v );
+}
 
 Havoc::Havoc ( const Havoc & orig ) :
 	AtomicProposition ( APType::Havoc ),
@@ -542,7 +535,7 @@ void Havoc::print ( ostream & o ) const
 {
 	o << "havoc ( ";
 	to_csv ( o, variables.cbegin(), variables.cend(),
-			[] ( ostream & o, const Variable *var ) {
+			[] ( ostream & o, const VariableUse &var ) {
 				o << var->name;
 			}, ", " );
 	o << " )";
@@ -657,7 +650,8 @@ ArrayWrite::ArrayWrite (
 		Terms idxs_1,
 		Terms idxs_2,
 		Terms values ):
-	AtomicProposition ( APType::ArrayWrite )
+	AtomicProposition ( APType::ArrayWrite ),
+	_arr ( *this )
 {
 	if ( idxs_2.size() != values.size() )
 		throw TypeError();
@@ -687,11 +681,11 @@ ArrayWrite::ArrayWrite (
 	_values    = move ( values );
 
 	set_terms_parent();
-	set_use();
 }
 
 ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
-	AtomicProposition ( APType::ArrayWrite )
+	AtomicProposition ( APType::ArrayWrite ),
+	_arr ( *this )
 {
 	_arr = orig._arr->clone();
 	_indices_1.reserve ( orig._indices_1.size() );
@@ -708,11 +702,11 @@ ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
 		_values.push_back ( x -> clone() );
 
 	set_terms_parent();
-	set_use();
 }
 
 ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
-	AtomicProposition ( APType::ArrayWrite )
+	AtomicProposition ( APType::ArrayWrite ),
+	_arr ( *this )
 {
 	_arr       = move ( old._arr       );
 	_indices_1 = move ( old._indices_1 );
@@ -720,12 +714,10 @@ ArrayWrite::ArrayWrite ( ArrayWrite && old ) :
 	_values    = move ( old._values    );
 
 	set_terms_parent();
-	set_use();
 }
 
 ArrayWrite::~ArrayWrite()
 {
-	remove_use();
 	for ( const Term * t : _indices_1 )
 		delete t;
 
@@ -736,18 +728,6 @@ ArrayWrite::~ArrayWrite()
 		delete t;
 }
 
-void ArrayWrite::set_use()
-{
-	_var_use = _arr->_users.insert (
-			_arr->_users.cend(),
-			VariableUser ( *this )
-	);
-}
-
-void ArrayWrite::remove_use()
-{
-	_arr->_users.erase ( _var_use );
-}
 
 ArrayWrite * ArrayWrite::clone() const
 {
@@ -1081,42 +1061,20 @@ UserConstant * UserConstant::clone() const
 }
 
 //------------------------------------//
-// VariableUser                     //
-//------------------------------------//
-
-VariableUser::VariableUser ( VariableReference & vref )
-{
-	user_ptr.vref = & vref;
-	user_type = UserType::VariableReference;
-}
-
-VariableUser::VariableUser ( ArrayWrite & awr )
-{
-	user_ptr.arr_wr = & awr;
-	user_type = UserType::ArrayWrite;
-}
-
-//------------------------------------//
 // VariableReference                  //
 //------------------------------------//
 
 VariableReference::VariableReference ( Variable & var, bool primed ) :
 	Leaf    ( var.type(), LeafType::VariableReference ),
-	_var    ( &var       ),
+	_var    ( *this ),
 	_primed ( primed     )
 {
-	set_use();
-}
-
-VariableReference::~VariableReference()
-{
-	if ( _var )
-		remove_use();
+	_var = & var;
 }
 
 VariableReference * VariableReference::clone() const
 {
-	return new VariableReference ( *_var, _primed );
+	return new VariableReference ( *_var.get(), _primed );
 }
 
 void VariableReference::print ( ostream & o ) const
@@ -1132,24 +1090,6 @@ void VariableReference::substitute ( Variable & var )
 	if ( var.type() != _var->type() )
 		throw TypeError();
 
-	remove_use();
 	_var = &var;
-	set_use();
-}
-
-void VariableReference::set_use()
-{
-	_var_use = _var->_users.insert (
-			_var->_users.cend(),
-			VariableUser ( *this )
-	);
-}
-
-void VariableReference::remove_use()
-{
-	if ( !_var )
-		throw std::logic_error ( "remove_use called twice" );
-	_var->_users.erase ( _var_use );
-	_var = nullptr;
 }
 

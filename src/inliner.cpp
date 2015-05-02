@@ -93,18 +93,6 @@ Variable * substitute ( Variable * var )
 	return v2;
 }
 
-const Variable * substitute_const ( const Variable * var )
-{
-	if ( var->user_data == nullptr )
-		return var;
-
-	Variable * v2 = ( Variable * ) var->user_data;
-	if ( v2->type() != var->type() )
-		throw TypeError();
-
-	return v2;
-}
-
 //------------------------------------//
 // Term                               //
 //------------------------------------//
@@ -114,8 +102,8 @@ void substitute_variables ( Leaf & lf )
 	if ( lf.leaf_type() == Leaf::LeafType::VariableReference )
 	{
 		VariableReference & vr = ( VariableReference & ) lf;
-		if ( vr.variable().user_data )
-			vr.substitute ( * ( Variable * )vr.variable().user_data );
+		if ( vr.variable()->user_data )
+			vr.substitute ( * ( Variable * )vr.variable()->user_data );
 	}
 }
 
@@ -165,12 +153,8 @@ unique_ptr < Term > substitute_term ( unique_ptr < Term > t )
 
 void substitute_variables ( Havoc & h )
 {
-	std::vector<Variable * > outv;
-	std::transform ( h.variables.begin(),
-			h.variables.end(),
-			h.variables.begin(),
-			substitute
-	);
+	for ( VariableUse & u : h.variables )
+		u.set ( substitute ( u.release() ) );
 }
 
 void substitute_variables ( ArrayWrite & aw )
@@ -352,7 +336,7 @@ void Inliner::transfer_transition ( Transition & t )
 		CallTransitionRule &r = *( CallTransitionRule * ) rule;
 		for ( Term *t : r.terms_in() )
 			substitute_variables ( *t );
-		r.transform_return_variables ( substitute_const );
+		r.transform_return_variables ( substitute );
 		
 	} else {
 		FormulaTransitionRule &r = *( FormulaTransitionRule * ) rule;

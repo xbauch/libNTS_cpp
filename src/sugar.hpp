@@ -67,7 +67,7 @@ nts::FormulaBop & operator&& ( nts::Formula & f1, nts::Formula & f2 );
 nts::ThreadID & tid();
 
 nts::Havoc & havoc ();
-nts::Havoc & havoc ( std::vector < nts::Variable *> vars );
+nts::Havoc & havoc ( const std::vector < nts::Variable *> & vars );
 
 
 // Reading VariableReference
