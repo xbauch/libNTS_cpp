@@ -238,6 +238,7 @@ class FormulaBop : public Formula
 
 		Formula & formula_1 () const;
 		Formula & formula_2 () const;
+		BoolOp op () const { return _op; }
 
 		virtual FormulaBop * clone() const override;
 };
@@ -287,8 +288,8 @@ class QuantifiedType
 
 		const DataType & type () const { return _t; }
 		// may be null
-		const Term * from() { return _from.get(); }
-		const Term * to()   { return _to.get();   }
+		const Term * from() const { return _from.get(); }
+		const Term * to() const  { return _to.get();   }
 
 		QuantifiedVariableList * parent() const { return _parent; }
 

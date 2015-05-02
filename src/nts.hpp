@@ -369,6 +369,8 @@ class Variable
 	
 		const DataType & type() const { return _type; }
 
+		const Variables * owner_list() const { return _parent_list; }
+
 		Variable * clone() const;
 
 		friend std::ostream & operator<< ( std::ostream &, const Variable & );
