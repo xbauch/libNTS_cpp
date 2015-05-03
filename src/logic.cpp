@@ -1066,7 +1066,7 @@ UserConstant * UserConstant::clone() const
 
 VariableReference::VariableReference ( Variable & var, bool primed ) :
 	Leaf    ( var.type(), LeafType::VariableReference ),
-	_var    ( *this ),
+	_var    ( *this, primed ),
 	_primed ( primed     )
 {
 	_var = & var;

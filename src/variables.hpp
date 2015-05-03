@@ -47,21 +47,22 @@ class VariableUse
 		Variable * _var;
 
 	public:
-
+		// Does this usage modify its value?
+		const bool     modifying;
 		// Points to one who uses the variable
 		const UserType user_type;
-		UserPtr  user_ptr;
+		UserPtr        user_ptr;
 
 		// By using these constructors caller specify
 		// who uses the variable. This information
 		// is stored in 'user_type' member field
 		// and it is forever!
-		explicit VariableUse ( VariableReference & vref );
+		explicit VariableUse ( VariableReference & vref, bool modify );
 		explicit VariableUse ( ArrayWrite & arr_wr );
 		explicit VariableUse ( CallTransitionRule & ctr );
 		explicit VariableUse ( Havoc & havc );
 
-		VariableUse ( UserType type, UserPtr ptr );
+		VariableUse ( UserType type, UserPtr ptr, bool modify );
 
 		/**
 		 * What would this mean? user uses the same variable twice?
@@ -109,7 +110,9 @@ class VariableUseContainer : private std::vector < VariableUse >
 		VariableUse::UserType _type;
 
 	public:
-		explicit VariableUseContainer ( VariableReference & vref );
+		const bool modifying;
+
+		explicit VariableUseContainer ( VariableReference & vref, bool modify );
 		explicit VariableUseContainer ( ArrayWrite & arr_wr );
 		explicit VariableUseContainer ( CallTransitionRule & ctr );
 		explicit VariableUseContainer ( Havoc & hvc );

@@ -11,7 +11,8 @@ namespace nts
 // VariableUse                        //
 //------------------------------------//
 
-VariableUse::VariableUse ( VariableReference & vref ) :
+VariableUse::VariableUse ( VariableReference & vref, bool modify ) :
+	modifying ( modify ),
 	user_type ( UserType::VariableReference )
 {
 	_var = nullptr;
@@ -19,6 +20,7 @@ VariableUse::VariableUse ( VariableReference & vref ) :
 }
 
 VariableUse::VariableUse ( ArrayWrite & awr ) :
+	modifying ( true ),
 	user_type ( UserType::ArrayWrite )
 {
 	_var = nullptr;
@@ -26,15 +28,17 @@ VariableUse::VariableUse ( ArrayWrite & awr ) :
 }
 
 VariableUse::VariableUse ( CallTransitionRule & ctr ) :
+	modifying ( true ),
 	user_type ( UserType::CallTransitionRule )
 {
 	_var = nullptr;
 	user_ptr.ctr = & ctr;
 }
 
-VariableUse::VariableUse ( UserType type, UserPtr ptr ) :
-	user_type ( type ),
-	user_ptr  ( ptr  )
+VariableUse::VariableUse ( UserType type, UserPtr ptr, bool modify ) :
+	modifying ( modify ),
+	user_type ( type   ),
+	user_ptr  ( ptr    )
 {
 	_var = nullptr;
 }
@@ -51,6 +55,7 @@ VariableUse::VariableUse ( const VariableUse & orig ) :
 #endif
 
 VariableUse::VariableUse ( VariableUse && old ) :
+	modifying ( old.modifying ),
 	user_type ( old.user_type ),
 	user_ptr  ( old.user_ptr  )
 {
@@ -109,25 +114,29 @@ VariableUse & VariableUse::operator= ( VariableUse && old )
 // VariableUseContainer               //
 //------------------------------------//
 
-VariableUseContainer :: VariableUseContainer ( VariableReference & vref )
+VariableUseContainer :: VariableUseContainer ( VariableReference & vref, bool modify ) :
+	modifying ( modify )
 {
 	_type = VariableUse::UserType::VariableReference;
 	_ptr.vref = & vref;
 }
 
-VariableUseContainer :: VariableUseContainer ( ArrayWrite & arr_wr )
+VariableUseContainer :: VariableUseContainer ( ArrayWrite & arr_wr ) :
+	modifying ( true )
 {
 	_type = VariableUse::UserType::ArrayWrite;
 	_ptr.arr_wr = & arr_wr;
 }
 
-VariableUseContainer :: VariableUseContainer ( CallTransitionRule & ctr )
+VariableUseContainer :: VariableUseContainer ( CallTransitionRule & ctr ) :
+	modifying ( true )
 {
 	_type = VariableUse::UserType::CallTransitionRule;
 	_ptr.ctr = & ctr;
 }
 
-VariableUseContainer :: VariableUseContainer ( Havoc & hvc )
+VariableUseContainer :: VariableUseContainer ( Havoc & hvc ) :
+	modifying ( true )
 {
 	_type = VariableUse::UserType::Havoc;
 	_ptr.hvc = & hvc;
@@ -135,7 +144,7 @@ VariableUseContainer :: VariableUseContainer ( Havoc & hvc )
 
 void VariableUseContainer :: push_back ( Variable * v )
 {
-	std::vector < VariableUse > :: push_back ( VariableUse ( _type, _ptr ) );
+	std::vector < VariableUse > :: push_back ( VariableUse ( _type, _ptr, modifying ) );
 	std::vector < VariableUse > :: back() = v;
 }
 
