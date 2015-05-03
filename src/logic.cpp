@@ -514,16 +514,16 @@ Havoc::Havoc ( const std::initializer_list < Variable * > & l ) :
 
 Havoc::Havoc ( const Havoc & orig ) :
 	AtomicProposition ( APType::Havoc ),
-	variables ( orig.variables )
+	variables ( *this )
 {
-	;
+	variables = orig.variables;
 }
 
 Havoc::Havoc ( Havoc && old ) :
 	AtomicProposition ( APType::Havoc ),
-	variables ( move ( old.variables ) )
+	variables ( *this )
 {
-	;
+	variables = move ( old.variables );
 }
 
 Havoc * Havoc::clone() const

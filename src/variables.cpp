@@ -39,19 +39,25 @@ VariableUse::VariableUse ( UserType type, UserPtr ptr ) :
 	_var = nullptr;
 }
 
+#if 0
 VariableUse::VariableUse ( const VariableUse & orig ) :
 	user_type ( orig.user_type )
 {
+	user_ptr.raw = nullptr;
 	// set() can call release()
 	_var = nullptr;
 	set ( orig.get() );
 }
+#endif
 
 VariableUse::VariableUse ( VariableUse && old ) :
-	user_type ( old.user_type )
+	user_type ( old.user_type ),
+	user_ptr  ( old.user_ptr  )
 {
 	_var = nullptr;
 	set ( old.release() );
+
+	old.user_ptr.raw = nullptr;
 }
 
 VariableUse::~VariableUse()
@@ -131,6 +137,29 @@ void VariableUseContainer :: push_back ( Variable * v )
 {
 	std::vector < VariableUse > :: push_back ( VariableUse ( _type, _ptr ) );
 	std::vector < VariableUse > :: back() = v;
+}
+
+VariableUseContainer & VariableUseContainer::operator= (
+		const VariableUseContainer & orig )
+{
+	clear();
+
+	for ( const VariableUse & u : orig )
+		push_back ( u.get() );
+	return *this;
+}
+
+VariableUseContainer & VariableUseContainer::operator= (
+		VariableUseContainer && orig )
+{
+	clear();
+
+	for ( VariableUse & u : orig )
+		push_back ( u.release() );
+
+	orig.clear();
+
+	return *this;
 }
 
 //------------------------------------//

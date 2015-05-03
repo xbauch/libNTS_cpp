@@ -63,7 +63,15 @@ class VariableUse
 
 		VariableUse ( UserType type, UserPtr ptr );
 
-		VariableUse ( const VariableUse & orig );
+		/**
+		 * What would this mean? user uses the same variable twice?
+		 */
+		VariableUse ( const VariableUse & orig ) = delete;
+
+		/**
+		 * User remains the same, moves only the information
+		 * about his using the variable.
+		 */
 		VariableUse ( VariableUse && old );
 
 		~VariableUse();
@@ -105,6 +113,16 @@ class VariableUseContainer : private std::vector < VariableUse >
 		explicit VariableUseContainer ( ArrayWrite & arr_wr );
 		explicit VariableUseContainer ( CallTransitionRule & ctr );
 		explicit VariableUseContainer ( Havoc & hvc );
+
+		// This whould preserve owner, what we usually do not want
+		VariableUseContainer ( const VariableUseContainer & orig ) = delete;
+		VariableUseContainer ( VariableUseContainer && old ) = delete;
+
+		VariableUseContainer & operator=
+			( const VariableUseContainer & orig );
+
+		VariableUseContainer & operator=
+			( VariableUseContainer && old );
 
 		using std::vector < VariableUse > :: begin;
 		using std::vector < VariableUse > :: end;

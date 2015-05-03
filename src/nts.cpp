@@ -797,9 +797,10 @@ CallTransitionRule::CallTransitionRule ( BasicNts & dest, Terms in, Variables ou
 CallTransitionRule::CallTransitionRule ( const CallTransitionRule & orig ) :
 	TransitionRule ( Kind::Call    ),
 	_dest          ( orig._dest    ),
-	_var_out       ( orig._var_out )
+	_var_out       ( *this )
 {
 	_term_in.reserve ( orig._term_in.size() );
+	_var_out = orig._var_out;
 
 	for ( const Term * t : orig._term_in )
 		_term_in.push_back ( t->clone() );

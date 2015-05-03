@@ -6,10 +6,10 @@
 
 
 template < typename T>
-using print_function = std::function <void ( std::ostream &, T ) >;
+using print_function = std::function <void ( std::ostream &, const T & ) >;
 
 template < typename T>
-void ptr_print_function ( std::ostream & o, T const * ptr )
+void ptr_print_function ( std::ostream & o, T const * const & ptr )
 {
 	o << *ptr;
 }
