@@ -477,7 +477,7 @@ class ArrayWrite : public AtomicProposition
 		const Terms & indices_1() const { return _indices_1; }
 		const Terms & indices_2() const { return _indices_2; }
 		const Terms & values()    const { return _values;    }
-		Variable * array() const;
+		Variable * array() const { return _arr.get(); }
 };
 
 class ArithmeticOperation : public Term
