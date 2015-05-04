@@ -7,8 +7,11 @@
 
 #include "nts.hpp"
 #include "logic.hpp"
+#include "sugar.hpp"
+#include "variables.hpp"
 
 using namespace nts;
+using namespace nts::sugar;
 
 using std::map;
 using std::string;
@@ -363,32 +366,54 @@ void Inliner::transfer_transition ( Transition & t )
  */
 void Inliner::add_initial_final_states ( Transition & t )
 {
-	BasicNts & dest = ( ( CallTransitionRule & ) t.rule() ).dest();
+	CallTransitionRule & r = static_cast < CallTransitionRule & > ( t.rule() );
+	BasicNts & dest = r.dest();
 
 	for ( State *s : dest.states() )
 	{
 		if ( s->is_initial() )
 		{
-			Transition * t_init = new Transition (
-				std::make_unique < FormulaTransitionRule> (
-					std::make_unique < Havoc > ()
-				),
-				t.from(),
-				*static_cast < State * > ( s->user_data )
-			);
-			t_init->insert_to ( _bn );
+			State & to = * static_cast < State * > ( s->user_data );
+			Havoc * h = new Havoc();
+			Formula * f = h;
+
+			unsigned int i = 0;
+			for ( Variable * _v : dest.params_in() )
+			{
+				Variable * v = static_cast < Variable * > ( _v->user_data );
+				Term & t = * r.terms_in()[i]->clone();
+
+				h->variables.push_back ( v );
+
+				AtomicProposition & ap = NEXT ( v ) == t;
+				f = & ( *f && ap );
+				i++;
+			}
+		
+			Transition & t_init = ( t.from() ->* to ) ( *f );
+			t_init.insert_to ( _bn );
 		}
 
 		if ( s->is_final() )
 		{
-			Transition * t_fin = new Transition (
-				std::make_unique < FormulaTransitionRule > (
-					std::make_unique < Havoc > ()
-				),
-				*static_cast < State * > ( s->user_data ),
-				t.to()
-			);
-			t_fin->insert_to ( _bn );
+			State & from = * static_cast < State * > ( s->user_data );
+			Havoc * h = new Havoc();
+			Formula * f = h;
+
+			unsigned int i = 0;
+			for ( Variable * _v : dest.params_out() )
+			{
+				Variable * v = static_cast < Variable * > ( _v->user_data );
+				Variable * v_to = r.variables_out()[i].get();
+
+				h->variables.push_back ( v_to );
+				AtomicProposition & ap = NEXT ( v_to ) == CURR ( v );
+				f = & ( *f && ap );
+				i++;
+			}
+
+			Transition & t_fin = ( from ->* t.to() ) ( *f );
+			t_fin.insert_to ( _bn );
 		}
 	}
 }
