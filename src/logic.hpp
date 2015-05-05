@@ -266,8 +266,8 @@ class QuantifiedType
 
 		const DataType & type () const { return _t; }
 		// may be null
-		const Term * from() const { return _from.get(); }
-		const Term * to() const  { return _to.get();   }
+		Term * from() const { return _from.get(); }
+		Term * to() const  { return _to.get();   }
 
 		QuantifiedVariableList * parent() const { return _parent; }
 

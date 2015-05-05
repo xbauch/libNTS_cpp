@@ -498,6 +498,8 @@ class CallTransitionRule : public TransitionRule
 
 		const Terms & terms_in()  const { return _term_in;  }
 		const VariableUseContainer & variables_out() const { return _var_out; }
+		VariableUseContainer & variables_out() { return _var_out; }
+
 
 		virtual CallTransitionRule * clone() const override;
 

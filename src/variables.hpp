@@ -2,6 +2,7 @@
 #define NTS_VARIABLES_HPP_
 #pragma once
 
+#include <functional>
 #include <vector>
 #include <list>
 
@@ -96,6 +97,9 @@ class VariableUse
 		explicit operator bool () const { return _var; }
 		explicit operator const Variable * () const { return _var; }
 		explicit operator Variable * () { return _var; }
+
+		using visitor = std::function < void ( VariableUse & ) >;
+		using const_visitor = std::function < void ( const VariableUse & ) >;
 };
 
 /**

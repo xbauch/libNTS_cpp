@@ -74,14 +74,38 @@ void annotate_with_origin ( Nts & n )
 		annotate_with_origin ( *bn );
 }
 
-
-void substitute_variables ( AtomicProposition & ap );
-void substitute_variables ( Term & t );
-void substitute_variables ( Formula & f );
-
 unique_ptr < Term > substitute_term ( unique_ptr < Term > t );
 
+struct visit_variable_uses
+{
+	const VariableUse::visitor & _visitor;
 
+	visit_variable_uses ( const VariableUse::visitor & vis ) :
+		_visitor ( vis )
+	{ ; }
+
+	void visit ( Formula & f ) const;
+	void visit ( FormulaNot & f ) const;
+	void visit ( FormulaBop & fb ) const;
+
+	void visit ( QuantifiedFormula & qf ) const;
+	void visit ( AtomicProposition & ap ) const;
+	void visit ( Term & t ) const;
+
+	void visit ( Havoc & h ) const;
+	void visit ( ArrayWrite & aw ) const;
+	void visit ( Relation & r ) const;
+	void visit ( BooleanTerm & bt ) const;
+
+	void visit ( Leaf & lf ) const;
+	void visit ( MinusTerm & mt ) const;
+	void visit ( ArrayTerm & art ) const;
+	void visit ( ArithmeticOperation & aop ) const;
+
+	void visit ( CallTransitionRule & cr ) const;
+	void visit ( FormulaTransitionRule & fr ) const;
+	void visit ( TransitionRule & tr ) const;
+};
 
 
 Variable * substitute ( Variable * var )
@@ -96,135 +120,155 @@ Variable * substitute ( Variable * var )
 	return v2;
 }
 
+void visitor_substitute ( VariableUse & u )
+{
+	Variable * v = substitute ( u.get() );
+	if ( v != u.get() )
+		u.set ( v );
+}
+
 //------------------------------------//
 // Term                               //
 //------------------------------------//
 
-void substitute_variables ( Leaf & lf )
+void visit_variable_uses::visit ( Leaf & lf ) const
 {
 	if ( lf.leaf_type() == Leaf::LeafType::VariableReference )
 	{
 		VariableReference & vr = ( VariableReference & ) lf;
-		if ( vr.variable()->user_data )
-			vr.substitute ( * ( Variable * )vr.variable()->user_data );
+		_visitor ( vr.variable() );
 	}
 }
 
-void substitute_variables ( MinusTerm & mt )
+void visit_variable_uses::visit ( MinusTerm & mt ) const
 {
-	substitute_variables ( mt.term() );
+	visit ( mt.term() );
 }
 
-void substitute_variables ( ArrayTerm & art )
+void visit_variable_uses::visit ( ArrayTerm & art ) const
 {
-	art.transform_indices ( substitute_term );
+	visit ( art.array() );
+	for ( Term * t : art.indices () )
+		visit ( * t );
 }
 
-void substitute_variables ( ArithmeticOperation & aop )
+
+void visit_variable_uses::visit ( ArithmeticOperation & aop ) const
 {
-	substitute_variables ( aop.term1() );
-	substitute_variables ( aop.term2() );
+	visit ( aop.term1() );
+	visit ( aop.term2() );
 }
 
-void substitute_variables ( Term & t )
+void visit_variable_uses::visit ( Term & t ) const
 {
 	switch ( t.term_type() )
 	{
 		case Term::TermType::Leaf:
-			return substitute_variables ( ( Leaf & ) t );
+			return visit ( ( Leaf & ) t );
 
 		case Term::TermType::MinusTerm:
-			return substitute_variables ( ( MinusTerm & ) t );
+			return visit ( ( MinusTerm & ) t );
 
 		case Term::TermType::ArrayTerm:
-			return substitute_variables ( ( ArrayTerm & ) t );
+			return visit ( ( ArrayTerm & ) t );
 
 		case Term::TermType::ArithmeticOperation:
-			return substitute_variables ( ( ArithmeticOperation & ) t );
+			return visit ( ( ArithmeticOperation & ) t );
 	}
-}
-
-unique_ptr < Term > substitute_term ( unique_ptr < Term > t )
-{
-	substitute_variables ( *t );
-	return t;
 }
 
 //------------------------------------//
 // AtomicProposition                  //
 //------------------------------------//
 
-void substitute_variables ( Havoc & h )
+void visit_variable_uses::visit ( Havoc & h ) const
 {
 	for ( VariableUse & u : h.variables )
-		u.set ( substitute ( u.release() ) );
+		_visitor ( u );
 }
 
-void substitute_variables ( ArrayWrite & aw )
+void visit_variable_uses::visit ( ArrayWrite & aw ) const
 {
 	for ( Term * t : aw.indices_1() )
-		substitute_variables ( *t );
+		visit ( *t );
 
 	for ( Term * t : aw.indices_2() )
-		substitute_variables ( *t );
+		visit ( *t );
 
 	for ( Term * t : aw.values() )
-		substitute_variables ( *t );
+		visit ( *t );
 }
 
-void substitute_variables ( Relation & r )
+void visit_variable_uses::visit ( Relation & r ) const
 {
-	substitute_variables ( r.term1() );
-	substitute_variables ( r.term2() );
+	visit ( r.term1() );
+	visit ( r.term2() );
 }
 
-void substitute_variables ( BooleanTerm & bt )
+void visit_variable_uses::visit ( BooleanTerm & bt ) const
 {
-	substitute_variables ( bt.term() );
+	visit ( bt.term() );
 }
 
 //------------------------------------//
 // Formula                            //
 //------------------------------------//
 
-void substitute_variables ( AtomicProposition & ap )
+void visit_variable_uses::visit ( AtomicProposition & ap ) const
 {
 	switch ( ap.aptype() )
 	{
 		case AtomicProposition :: APType :: Relation:
-			return substitute_variables ( ( Relation    & ) ap );
+			return visit ( ( Relation    & ) ap );
 
 		case AtomicProposition :: APType :: Havoc:
-			return substitute_variables ( ( Havoc       & ) ap );
+			return visit ( ( Havoc       & ) ap );
 
 		case AtomicProposition :: APType :: ArrayWrite:
-			return substitute_variables ( ( ArrayWrite  & ) ap );
+			return visit ( ( ArrayWrite  & ) ap );
 
 		case AtomicProposition :: APType :: BooleanTerm:
-			return substitute_variables ( ( BooleanTerm & ) ap );
+			return visit ( ( BooleanTerm & ) ap );
 	}
 	
 	throw logic_error ( "Unknown APType" );
 }
 
-void substitute_variables ( FormulaNot & f )
+void visit_variable_uses::visit ( FormulaNot & f ) const
 {
-	substitute_variables ( f.formula() );
+	visit ( f.formula() );
 }
 
-void substitute_variables ( FormulaBop & fb )
+void visit_variable_uses::visit ( FormulaBop & fb ) const
 {
-	substitute_variables ( fb.formula_1() );
-	substitute_variables ( fb.formula_2() );
+	visit ( fb.formula_1() );
+	visit ( fb.formula_2() );
 }
 
-void substitute_variables ( QuantifiedFormula & qf )
+void visit_variable_uses::visit ( QuantifiedFormula & qf ) const
 {
+	visit ( qf.formula() );
+	
+	Term * from = qf.list.qtype().from();
+	Term * to   = qf.list.qtype().to();
+
+	visit ( *from );
+	visit ( *to   );
+
+	for ( Term * t : qf.list.qtype().type().idx_terms() )
+	{
+		visit ( *t );
+	}
+
+	for ( Variable *v : qf.list.variables() )
+	{
+		for ( Term * t : v->type().idx_terms() )
+		{
+			visit ( *t );
+		}
+	}
 	throw logic_error ( "Not implemented" );
 }
-
-
-
 
 /**
  * @brief Substitute variables inside formula with their shadow variables.
@@ -233,24 +277,58 @@ void substitute_variables ( QuantifiedFormula & qf )
  * @post Occurences of variables, which had 'user data' pointing to some other variable,
  * are substituted with the other variable. Nothing else is modified.
  */
-void substitute_variables ( Formula & f )
+void visit_variable_uses::visit ( Formula & f ) const
 {
 	switch ( f.type() )
 	{
 		case Formula::Type::AtomicProposition:
-			return substitute_variables ( (AtomicProposition &) ( f ) );
+			return visit ( (AtomicProposition &) ( f ) );
 
 		case Formula::Type::FormulaNot:
-			return substitute_variables ( (FormulaNot & ) ( f ) );
+			return visit ( (FormulaNot & ) ( f ) );
 
 		case Formula::Type::FormulaBop:
-			return substitute_variables ( (FormulaBop & ) ( f ) );
+			return visit ( (FormulaBop & ) ( f ) );
 
 		case Formula::Type::QuantifiedFormula:
-			return substitute_variables ( (QuantifiedFormula & ) ( f ) );
+			return visit ( (QuantifiedFormula & ) ( f ) );
 	}
 
 	throw logic_error ( "Unknown formula type" );
+}
+
+void visit_variable_uses::visit ( CallTransitionRule & cr ) const
+{
+	for ( Term * t : cr.terms_in() )
+		visit ( *t );
+
+	for ( VariableUse & u : cr.variables_out() )
+		_visitor ( u );
+}
+
+void visit_variable_uses::visit ( FormulaTransitionRule & fr ) const
+{
+	visit ( fr.formula() );
+}
+
+void visit_variable_uses::visit ( TransitionRule & tr ) const
+{
+	switch ( tr.kind() )
+	{
+		case TransitionRule::Kind::Formula:
+			visit ( static_cast < FormulaTransitionRule & > ( tr ) );
+			break;
+
+		case TransitionRule::Kind::Call:
+			visit ( static_cast < CallTransitionRule & > ( tr ) );
+			break;
+	}
+}
+
+void substitute_variables ( TransitionRule & tr )
+{
+	visit_variable_uses sub ( visitor_substitute );
+	sub.visit ( tr );
 }
 
 /**
@@ -334,17 +412,7 @@ class Inliner
 void Inliner::transfer_transition ( Transition & t )
 {
 	TransitionRule * rule = t.rule().clone();
-	if ( rule->kind() == TransitionRule::Kind::Call )
-	{
-		CallTransitionRule &r = *( CallTransitionRule * ) rule;
-		for ( Term *t : r.terms_in() )
-			substitute_variables ( *t );
-		r.transform_return_variables ( substitute );
-		
-	} else {
-		FormulaTransitionRule &r = *( FormulaTransitionRule * ) rule;
-		substitute_variables ( r.formula() );
-	}
+	substitute_variables ( *rule );
 
 	if ( !t.from().user_data || !t.to().user_data )
 		throw logic_error ( "Unexpected nullptr" );
