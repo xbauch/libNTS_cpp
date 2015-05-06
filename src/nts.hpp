@@ -236,7 +236,7 @@ class BasicNts
 
 		~BasicNts();
 
-		const Transitions & transitions() { return _transitions; }
+		const Transitions & transitions() const { return _transitions; }
 
 		Callers callers();
 		Callees callees();
