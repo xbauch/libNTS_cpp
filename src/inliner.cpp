@@ -9,6 +9,7 @@
 #include "logic.hpp"
 #include "sugar.hpp"
 #include "variables.hpp"
+#include "inliner.hpp"
 
 using namespace nts;
 using namespace nts::sugar;
@@ -73,40 +74,6 @@ void annotate_with_origin ( Nts & n )
 	for ( BasicNts *bn : n.basic_ntses() )
 		annotate_with_origin ( *bn );
 }
-
-unique_ptr < Term > substitute_term ( unique_ptr < Term > t );
-
-struct visit_variable_uses
-{
-	const VariableUse::visitor & _visitor;
-
-	visit_variable_uses ( const VariableUse::visitor & vis ) :
-		_visitor ( vis )
-	{ ; }
-
-	void visit ( Formula & f ) const;
-	void visit ( FormulaNot & f ) const;
-	void visit ( FormulaBop & fb ) const;
-
-	void visit ( QuantifiedFormula & qf ) const;
-	void visit ( AtomicProposition & ap ) const;
-	void visit ( Term & t ) const;
-
-	void visit ( Havoc & h ) const;
-	void visit ( ArrayWrite & aw ) const;
-	void visit ( Relation & r ) const;
-	void visit ( BooleanTerm & bt ) const;
-
-	void visit ( Leaf & lf ) const;
-	void visit ( MinusTerm & mt ) const;
-	void visit ( ArrayTerm & art ) const;
-	void visit ( ArithmeticOperation & aop ) const;
-
-	void visit ( CallTransitionRule & cr ) const;
-	void visit ( FormulaTransitionRule & fr ) const;
-	void visit ( TransitionRule & tr ) const;
-};
-
 
 Variable * substitute ( Variable * var )
 {
