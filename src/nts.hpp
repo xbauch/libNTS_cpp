@@ -251,6 +251,7 @@ class BasicNts
 		const VariableContainer & variables()  const { return _variables;  }
 		const VariableContainer & params_in()  const { return _params_in;  }
 		const VariableContainer & params_out() const { return _params_out; }
+		const VariableContainer & pars()       const { return _pars;       }
 
 		const States & states() const { return _states; }
 
