@@ -101,6 +101,17 @@ Nts::~Nts()
 
 }
 
+unsigned int Nts::n_threads() const
+{
+	return std::accumulate (
+			_instances.cbegin(),
+			_instances.cend(),
+			0,
+			[] ( unsigned int n, const Instance * i )
+			{ return n + i->n; }
+	);
+}
+
 ostream & nts::operator<< ( ostream & o , const Nts & nts )
 {
 	o << "nts " << nts.name << ";\n";

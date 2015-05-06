@@ -129,6 +129,9 @@ class Nts
 
 		friend std::ostream & operator<< ( std::ostream &, const Nts & );
 
+		// Gets number of threads in this nts
+		unsigned int n_threads() const;
+
 		std::unique_ptr < Formula > initial_formula;
 		// FIXME: annotations are not printed
 		Annotations annotations;
