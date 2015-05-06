@@ -687,7 +687,7 @@ ArrayWrite::ArrayWrite ( const ArrayWrite & orig ) :
 	AtomicProposition ( APType::ArrayWrite ),
 	_arr ( *this )
 {
-	_arr = orig._arr->clone();
+	_arr.set ( orig._arr.get() );
 	_indices_1.reserve ( orig._indices_1.size() );
 	_indices_2.reserve ( orig._indices_2.size() );
 	_values   .reserve ( orig._values   .size() );
