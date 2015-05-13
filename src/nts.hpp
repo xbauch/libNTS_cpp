@@ -133,6 +133,9 @@ class Nts
 		unsigned int n_threads() const;
 
 		std::unique_ptr < Formula > initial_formula;
+
+		void initial_add_conjunct (std::unique_ptr < Formula > f );
+
 		// FIXME: annotations are not printed
 		Annotations annotations;
 		std::string name;

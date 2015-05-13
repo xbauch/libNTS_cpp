@@ -101,6 +101,28 @@ Nts::~Nts()
 
 }
 
+void Nts::initial_add_conjunct ( unique_ptr < Formula > f )
+{
+	std::unique_ptr < Formula > new_formula;
+
+	if ( initial_formula )
+	{
+		new_formula = std::make_unique < FormulaBop > (
+				BoolOp::And,
+				move ( f ),
+				move ( initial_formula )
+		);
+	}
+	else
+	{
+		new_formula = move ( f );
+	}
+
+	initial_formula = move ( new_formula );
+	initial_formula->_parent_ptr.nts = this;
+	initial_formula->_parent_type = Formula::ParentType::NtsInitialFormula;
+}
+
 unsigned int Nts::n_threads() const
 {
 	return std::accumulate (
