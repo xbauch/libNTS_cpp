@@ -984,6 +984,31 @@ MinusTerm * MinusTerm::clone() const
 }
 
 //------------------------------------//
+// Leaf                               //
+//------------------------------------//
+
+Leaf::Leaf ( DataType type, LeafType ltype ) :
+	Term ( move ( type ), TermType::Leaf ),
+	_leaf_type ( ltype )
+{
+	;
+}
+
+Leaf::Leaf ( const Leaf & orig ) :
+	Term ( orig.type(), TermType::Leaf ),
+	_leaf_type ( orig._leaf_type )
+{
+	;
+}
+
+Leaf::Leaf ( Leaf && old ) :
+	Term ( move ( old ) ),
+	_leaf_type ( old._leaf_type )
+{
+	;
+}
+
+//------------------------------------//
 // ThreadID                           //
 //------------------------------------//
 ThreadID::ThreadID() :
@@ -1002,6 +1027,27 @@ void ThreadID::print ( ostream & o ) const
 	o << "tid";
 }
 
+//------------------------------------//
+// Constant                           //
+//------------------------------------//
+
+Constant::Constant ( DataType type, LeafType ltype ) :
+	Leaf ( std::move ( type ), ltype )
+{
+	;
+}
+
+Constant::Constant ( const Constant & orig ) :
+	Leaf ( orig.type(), orig.leaf_type() )
+{
+	;
+}
+
+Constant::Constant ( Constant && old ) :
+	Leaf ( move ( old ) )
+{
+	;
+}
 
 //------------------------------------//
 // IntConstant                        //
@@ -1014,9 +1060,23 @@ IntConstant::IntConstant ( int value ) :
 	;
 }
 
+IntConstant::IntConstant ( const IntConstant & orig ) :
+	Constant ( orig ),
+	_value   ( orig._value )
+{
+	;
+}
+
+IntConstant::IntConstant ( IntConstant && old ) :
+	Constant ( move ( old ) ),
+	_value   ( old._value )
+{
+	;
+}
+
 IntConstant * IntConstant::clone() const
 {
-	return new IntConstant ( _value );
+	return new IntConstant ( *this );
 }
 
 void IntConstant::print ( ostream & o ) const
@@ -1035,9 +1095,23 @@ BoolConstant::BoolConstant ( bool value ) :
 	;
 }
 
+BoolConstant::BoolConstant ( const BoolConstant & orig ) :
+	Constant ( orig        ),
+	_value   ( orig._value )
+{
+	;
+}
+
+BoolConstant::BoolConstant ( BoolConstant && old ) :
+	Constant ( move ( old ) ),
+	_value   ( old._value   )
+{
+	;
+}
+
 BoolConstant * BoolConstant::clone() const
 {
-	return new BoolConstant ( _value );
+	return new BoolConstant ( *this );
 }
 
 void BoolConstant::print ( ostream & o ) const

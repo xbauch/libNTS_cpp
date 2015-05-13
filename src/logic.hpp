@@ -604,10 +604,9 @@ class Leaf : public Term
 		LeafType _leaf_type;
 
 	public:
-		Leaf ( DataType type, LeafType ltype ) :
-			Term ( std::move ( type ), TermType::Leaf ),
-			_leaf_type ( ltype )
-		{ ; }
+		Leaf ( DataType type, LeafType ltype );
+		Leaf ( const Leaf & orig );
+		Leaf ( Leaf && old );
 
 		LeafType leaf_type() const { return _leaf_type; }
 		virtual Leaf * clone() const override = 0;
@@ -616,9 +615,9 @@ class Leaf : public Term
 class Constant : public Leaf
 {
 	public:
-		Constant ( DataType type, LeafType ltype ) :
-			Leaf ( std::move ( type ), ltype )
-		{ ; }
+		Constant ( DataType type, LeafType ltype );
+		Constant ( const Constant & orig );
+		Constant ( Constant && old );
 
 		virtual Constant * clone() const override = 0;
 };
@@ -645,6 +644,8 @@ class IntConstant : public Constant
 
 	public:
 		explicit IntConstant ( int value );
+		IntConstant ( const IntConstant & orig );
+		IntConstant ( IntConstant && old );
 
 		virtual ~IntConstant() = default;
 
@@ -661,6 +662,8 @@ class BoolConstant : public Constant
 
 	public:
 		explicit BoolConstant ( bool value );
+		BoolConstant ( const BoolConstant & orig );
+		BoolConstant ( BoolConstant && old );
 
 		virtual ~BoolConstant() = default;
 
@@ -697,6 +700,8 @@ class VariableReference : public Leaf
 
 	public:
 		VariableReference ( Variable & var, bool primed );
+		VariableReference ( const VariableReference & orig ) = delete;
+		VariableReference ( VariableReference && old ) = delete;
 		virtual ~VariableReference() = default;
 
 		bool primed() const { return _primed; }
