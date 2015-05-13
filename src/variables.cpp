@@ -1,8 +1,12 @@
+#include <stdexcept>
 #include <utility>
+
 #include "nts.hpp"
 #include "variables.hpp"
 
+using std::logic_error;
 using std::move;
+using std::unique_ptr;
 
 namespace nts
 {
@@ -193,6 +197,17 @@ VariableContainer::~VariableContainer()
 VariableContainer & VariableContainer::operator= ( VariableContainer && old )
 {
 	list < Variable * > :: operator= ( move ( old ) );
+	return *this;
+}
+
+VariableContainer & VariableContainer::operator+= ( unique_ptr < Variable > v )
+{
+	if ( v->_container )
+		throw logic_error ( "Variable already in container" );
+
+	v->_container = this;
+	v->_pos = insert ( cend(), v.release() );
+
 	return *this;
 }
 

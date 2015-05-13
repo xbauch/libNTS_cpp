@@ -301,8 +301,8 @@ class QuantifiedVariableList
 
 		QuantifiedFormula * parent() const { return _parent; }
 
-		const QuantifiedType        & qtype()      const { return _qtype; }
-		const std::list<Variable *> & variables()  const { return _vars; }
+		const QuantifiedType    & qtype()      const { return _qtype; }
+		const VariableContainer & variables()  const { return _vars; }
 
 		friend std::ostream & operator<< ( std::ostream & o,
 				const QuantifiedVariableList & qvl );

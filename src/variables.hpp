@@ -2,6 +2,7 @@
 #define NTS_VARIABLES_HPP_
 #pragma once
 
+#include <memory>
 #include <functional>
 #include <vector>
 #include <list>
@@ -162,10 +163,12 @@ class VariableContainer : public std::list < Variable * >
 		VariableContainer ( const VariableContainer & ) = delete;
 		VariableContainer ( VariableContainer && ) = delete;
 
+		~VariableContainer();
+
 		VariableContainer & operator= ( const VariableContainer & ) = delete;
 		VariableContainer & operator= ( VariableContainer && old );
 
-		~VariableContainer();
+		VariableContainer & operator+= ( std::unique_ptr < Variable > v );
 };
 
 

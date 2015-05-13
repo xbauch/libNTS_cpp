@@ -325,6 +325,7 @@ class Variable
 	private:
 		DataType    _type;
 
+		friend class VariableContainer;
 		// If variable has a parent, then _pos is valid iterator
 		// and points to position of this variable in parent's list
 		VariableContainer         * _container;
