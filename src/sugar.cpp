@@ -131,6 +131,10 @@ unique_ptr < FormulaBop > operator&& (
 	return unique_ptr < FormulaBop > ( & (*f1.release() && *f2.release() ) );
 }
 
+FormulaNot & operator! ( Formula & f )
+{
+	return * new FormulaNot ( unique_ptr < Formula > ( & f ) );
+}
 
 unique_ptr < FormulaBop > operator== (
 		unique_ptr < Formula > && f1,
@@ -277,6 +281,11 @@ VariableReference & NEXT ( Variable & var )
 VariableReference & NEXT ( Variable * var )
 {
 	return NEXT ( *var );
+}
+
+nts::BooleanTerm & boolterm ( nts::VariableReference & r )
+{
+	return * new BooleanTerm ( unique_ptr < VariableReference > ( & r ) );
 }
 
 SugarTransitionStates::SugarTransitionStates ( State & from, State & to ) :

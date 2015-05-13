@@ -63,6 +63,8 @@ nts::FormulaBop & operator== ( nts::Formula & f1, nts::Formula &f2 );
 
 nts::FormulaBop & operator&& ( nts::Formula & f1, nts::Formula & f2 );
 
+nts::FormulaNot & operator! ( nts::Formula & f );
+
 // new instance of ThreadID
 nts::ThreadID & tid();
 
@@ -79,7 +81,7 @@ nts::VariableReference & CURR ( nts::Variable * var );
 nts::VariableReference & NEXT ( nts::Variable & var );
 nts::VariableReference & NEXT ( nts::Variable * var );
 
-
+nts::BooleanTerm & boolterm ( nts::VariableReference & );
 
 
 class SugarTransitionStates
