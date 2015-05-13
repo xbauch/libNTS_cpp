@@ -596,7 +596,8 @@ class Leaf : public Term
 			ThreadID,
 			IntConstant,
 			UserConstant,
-			VariableReference
+			VariableReference,
+			BoolConstant
 		};
 
 	private:
@@ -644,10 +645,28 @@ class IntConstant : public Constant
 
 	public:
 		explicit IntConstant ( int value );
+
 		virtual ~IntConstant() = default;
 
 		virtual IntConstant * clone() const override;
 };
+
+class BoolConstant : public Constant
+{
+	private:
+		bool _value;
+
+	protected:
+		virtual void print ( std::ostream & o ) const override;
+
+	public:
+		explicit BoolConstant ( bool value );
+
+		virtual ~BoolConstant() = default;
+
+		virtual BoolConstant * clone() const override;
+};
+
 
 // Constant of arbitrary type, stored in string
 class UserConstant : public Constant

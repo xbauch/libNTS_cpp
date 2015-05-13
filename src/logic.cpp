@@ -1025,6 +1025,30 @@ void IntConstant::print ( ostream & o ) const
 }
 
 //------------------------------------//
+// BoolConstant                       //
+//------------------------------------//
+
+BoolConstant::BoolConstant ( bool value ) :
+	Constant ( DataType ( ScalarType::Bool() ), LeafType::BoolConstant ),
+	_value   ( value )
+{
+	;
+}
+
+BoolConstant * BoolConstant::clone() const
+{
+	return new BoolConstant ( _value );
+}
+
+void BoolConstant::print ( ostream & o ) const
+{
+	if ( _value )
+		o << "true";
+	else
+		o << "false";
+}
+
+//------------------------------------//
 // UserConstant                       //
 //------------------------------------//
 

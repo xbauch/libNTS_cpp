@@ -82,6 +82,7 @@ nts::VariableReference & NEXT ( nts::Variable & var );
 nts::VariableReference & NEXT ( nts::Variable * var );
 
 nts::BooleanTerm & boolterm ( nts::VariableReference & );
+nts::BooleanTerm & boolterm ( std::unique_ptr < nts::Leaf > && leaf );
 
 
 class SugarTransitionStates

@@ -288,6 +288,11 @@ nts::BooleanTerm & boolterm ( nts::VariableReference & r )
 	return * new BooleanTerm ( unique_ptr < VariableReference > ( & r ) );
 }
 
+BooleanTerm & boolterm ( std::unique_ptr < nts::Leaf > && leaf )
+{
+	return * new BooleanTerm ( move ( leaf ) );
+}
+
 SugarTransitionStates::SugarTransitionStates ( State & from, State & to ) :
 	_from ( from ),
 	_to   ( to   )
