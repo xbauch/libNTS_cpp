@@ -303,6 +303,8 @@ class QuantifiedVariableList
 
 		const QuantifiedType    & qtype()      const { return _qtype; }
 		const VariableContainer & variables()  const { return _vars; }
+		      VariableContainer & variables()        { return _vars; }
+
 
 		friend std::ostream & operator<< ( std::ostream & o,
 				const QuantifiedVariableList & qvl );
