@@ -312,7 +312,10 @@ QuantifiedType::QuantifiedType ( DataType t,
 	if ( ! t.is_scalar() )
 		throw TypeError();
 
-	if ( from->type() != _t || to->type() != _t )
+	if ( !coercible_ne ( from->type(), _t ) )
+		throw TypeError();
+
+	if ( !coercible_ne ( to->type(), _t ) )
 		throw TypeError();
 
 	_parent = nullptr;
