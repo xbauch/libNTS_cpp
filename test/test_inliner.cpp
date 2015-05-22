@@ -76,7 +76,8 @@ void test_inlining()
 	callee->insert_to ( *nts );
 	caller->insert_to ( *nts );
 
-	auto * inst = new Instance ( caller, 7 );
+  auto* seven = new IntConstant( 7 );
+	auto * inst = new Instance ( caller, seven );
 	inst->insert_to ( *nts );
 
 	cout << "** Original **\n";

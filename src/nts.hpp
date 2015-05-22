@@ -141,6 +141,7 @@ class Nts
 		std::string name;
 };
 
+class Term;
 class Instance
 {
 	private:
@@ -151,14 +152,14 @@ class Instance
 		Instances::iterator _pos;
 
 		BasicNts * _bn;
-
+  Term* _n;
 
 	public:	
-		Instance ( BasicNts *basic, unsigned int n );
+  Instance ( BasicNts *basic, Term* n );
 		Instance ( const Instance & ) = delete;
 		Instance ( const Instance && ) = delete;
 
-		~Instance() = default;
+  ~Instance();
 
 		void remove_from_parent();
 		void insert_to ( Nts & parent );
@@ -167,7 +168,7 @@ class Instance
 		friend std::ostream & operator<< ( std::ostream &o, const Instance & );
 
 		BasicNts & basic_nts() const { return * _bn; }
-		unsigned int n;
+   Term& num() const { return *_n; }
 };
 
 class Transition;
@@ -465,7 +466,6 @@ class TransitionRule
 		virtual TransitionRule * clone() const = 0;
 };
 
-class Term;
 class CallTransitionRule : public TransitionRule
 {
 	public:

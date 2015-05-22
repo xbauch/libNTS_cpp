@@ -893,7 +893,7 @@ ArrayTerm::ArrayTerm ( p_Term arr, vector < Term * > indices ) :
 	Term (
 		array_type_apply_terms ( arr->type(), indices.size() ),
 		TermType::ArrayTerm
-	)	
+  )
 {
 	_array = move ( arr );
 	_indices = move ( indices );
@@ -924,6 +924,10 @@ ArrayTerm::~ArrayTerm()
 
 void ArrayTerm::print ( ostream & o ) const
 {
+  if ( _indices.empty() ) {
+    o << "|" << *_array << "|";
+    return;
+  }
 	o << *_array;
 	for ( const Term * t : _indices )
 	{

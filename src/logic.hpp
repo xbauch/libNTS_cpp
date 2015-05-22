@@ -103,6 +103,7 @@ class Term
 		virtual Term * clone() const = 0;
 
 		friend std::ostream & operator<< ( std::ostream & o, const Term & t );
+  int evaluate() { return 0; }
 
 		enum class ParentType
 		{
@@ -536,6 +537,7 @@ class ArrayTerm : public Term
 		virtual ~ArrayTerm();
 
 		Term & array() const { return *_array; }
+  bool is_size_term() { return _indices.empty(); }
 		const std::vector < Term * > & indices() const { return _indices; }
 
 		// A function which becomes an owner of given term
@@ -652,6 +654,7 @@ class IntConstant : public Constant
 		virtual ~IntConstant() = default;
 
 		virtual IntConstant * clone() const override;
+  int evaluate() { return _value; }
 };
 
 class BoolConstant : public Constant
@@ -689,6 +692,7 @@ class UserConstant : public Constant
 		virtual ~UserConstant() = default;
 
 		virtual UserConstant * clone() const override;
+  int evaluate() { return std::stoi( _value.c_str() ); }
 };
 
 class VariableReference : public Leaf

@@ -130,7 +130,7 @@ unsigned int Nts::n_threads() const
 			_instances.cend(),
 			0,
 			[] ( unsigned int n, const Instance * i )
-			{ return n + i->n; }
+			{ return n + i->num().evaluate(); }
 	);
 }
 
@@ -178,12 +178,17 @@ ostream & nts::operator<< ( ostream & o , const Nts & nts )
 // Instance                           //
 //------------------------------------//
 
-Instance::Instance ( BasicNts *basic, unsigned int n )  :
+Instance::Instance ( BasicNts *basic, Term* n )  :
 	_parent ( nullptr ),
 	_bn     ( basic   ),
-	n       ( n       )
+  _n      ( n       )
 {
-	;
+  ;
+}
+
+Instance::~Instance()
+{
+  delete _n;
 }
 
 void Instance::remove_from_parent()
@@ -209,7 +214,7 @@ void Instance::insert_to ( Nts & parent )
 
 ostream & nts::operator<< ( ostream &o , const Instance &i )
 {
-	o << i._bn->name << '[' << i.n << ']';
+	o << i._bn->name << '[' << *i._n << ']';
 	return o;
 }
 
